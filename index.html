@@ -1,3 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anime Quiz Multiplayer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body { font-family: Arial; background:#0a0a1a; color:white; text-align:center; }
+.screen { display:none; }
+.active { display:block; }
+button { padding:10px; margin:5px; }
+.player { margin:5px; }
+</style>
+</head>
+
+<body>
+
+<h1>ANIME QUIZ</h1>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <button onclick="show('create')">CREATE</button>
+  <button onclick="show('join')">JOIN</button>
+</div>
+
+<!-- CREATE -->
+<div id="create" class="screen">
+  <input id="host-name" placeholder="Name"><br>
+  <button onclick="createGame()">CREATE ROOM</button><br>
+  <button onclick="show('home')">BACK</button>
+</div>
+
+<!-- JOIN -->
+<div id="join" class="screen">
+  <input id="join-name" placeholder="Name"><br>
+  <input id="code" placeholder="CODE"><br>
+  <button onclick="joinGame()">JOIN</button><br>
+</div>
+
+<!-- HOST -->
+<div id="host" class="screen">
+  <h2>ROOM: <span id="roomCode"></span></h2>
+  <div id="players"></div>
+  <button onclick="startGame()">START</button>
+</div>
+
+<!-- GUEST -->
+<div id="guest" class="screen">
+  <h2>WAITING...</h2>
+  <div id="players2"></div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <h3 id="q"></h3>
+  <div id="opts"></div>
+  <p>Score: <span id="score">0</span></p>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover" class="screen">
+  <h2>GAME OVER</h2>
+  <h3 id="final"></h3>
+  <button onclick="location.reload()">RESTART</button>
+</div>
+
 <script>
 // ===== SUPABASE =====
 const sb = supabase.createClient(
@@ -6,212 +75,137 @@ const sb = supabase.createClient(
 );
 
 // ===== STATE =====
-let G = {
-  room:null,
-  name:null,
-  isHost:false,
-  players:[],
-  channel:null,
-  q:[],
-  i:0,
-  score:0
-};
+let G = {room:null,name:null,isHost:false,players:[],channel:null,q:[],i:0,score:0};
+
+// ===== QUESTIONS =====
+const Q = [
+ {q:"Naruto MC?",a:["Naruto","Sasuke","Sakura","Lee"],c:0},
+ {q:"Luffy power?",a:["Fire","Rubber","Ice","Wind"],c:1},
+ {q:"AOT hero?",a:["Levi","Eren","Armin","Reiner"],c:1},
+ {q:"Death Note user?",a:["L","Light","Near","Misa"],c:1},
+ {q:"Tanjiro style?",a:["Fire","Water","Wind","Thunder"],c:1},
+ {q:"One Punch hero?",a:["Saitama","Naruto","Goku","Eren"],c:0}
+];
+
+function buildQ(){
+  return Q.sort(()=>Math.random()-0.5);
+}
 
 // ===== UI =====
 function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
 }
 
-// ===== ROOM CODE =====
+// ===== CODE =====
 function gen(){
-  let s="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array(4).fill().map(()=>s[Math.random()*s.length|0]).join('');
+ let s="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+ return Array(4).fill().map(()=>s[Math.random()*s.length|0]).join('');
 }
 
 // ===== REALTIME =====
 function sub(code){
-  if(G.channel) sb.removeChannel(G.channel);
+ if(G.channel) sb.removeChannel(G.channel);
 
-  G.channel = sb.channel("room-"+code, {
-    config:{broadcast:{self:true}}
-  });
+ G.channel = sb.channel("room-"+code,{config:{broadcast:{self:true}}});
 
-  G.channel
-    // PLAYER JOIN
-    .on('broadcast',{event:'join'},({payload})=>{
-      if(!G.players.includes(payload)){
-        G.players.push(payload);
-        render();
-      }
-    })
-
-    // HOST SYNC FULL LIST
-    .on('broadcast',{event:'sync'},({payload})=>{
-      G.players = payload;
+ G.channel
+  .on('broadcast',{event:'join'},({payload})=>{
+    if(!G.players.includes(payload)){
+      G.players.push(payload);
       render();
-    })
-
-    // START GAME
-    .on('broadcast',{event:'start'},({payload})=>{
-      G.q = payload;
-      startQuiz();
-    })
-
-    .subscribe(async(status)=>{
-      if(status === "SUBSCRIBED"){
-
-        // SEND JOIN
-        await G.channel.send({
-          type:'broadcast',
-          event:'join',
-          payload:G.name
-        });
-
-        // HOST SEND FULL LIST
-        if(G.isHost){
-          setTimeout(()=>{
-            G.channel.send({
-              type:'broadcast',
-              event:'sync',
-              payload:G.players
-            });
-          },300);
-        }
-      }
-    });
+    }
+  })
+  .on('broadcast',{event:'start'},({payload})=>{
+    G.q = payload;
+    startQuiz();
+  })
+  .subscribe(async(s)=>{
+    if(s=="SUBSCRIBED"){
+      await G.channel.send({type:'broadcast',event:'join',payload:G.name});
+    }
+  });
 }
 
 // ===== CREATE =====
 function createGame(){
-  let n = document.getElementById('host-name').value.trim();
-  if(!n) return showToast("Enter your name","wrong");
+ let n = document.getElementById('host-name').value.trim();
+ if(!n) return alert("Enter name");
 
-  G.name = n;
-  G.isHost = true;
-  G.room = gen();
+ G.name=n; G.isHost=true;
+ G.room=gen(); G.players=[n];
 
-  G.players = [n];
+ document.getElementById('roomCode').innerText = G.room;
 
-  document.getElementById('roomCode').innerText = G.room;
-
-  show('host');
-  render();
-  sub(G.room);
+ show('host'); render();
+ sub(G.room);
 }
 
 // ===== JOIN =====
 function joinGame(){
-  let n = document.getElementById('join-name').value.trim();
-  let c = document.getElementById('code').value.toUpperCase().trim();
+ let n = document.getElementById('join-name').value.trim();
+ let c = document.getElementById('code').value.toUpperCase().trim();
 
-  if(!n) return showToast("Enter name","wrong");
-  if(c.length !== 4) return showToast("Invalid code","wrong");
+ if(!n) return alert("Enter name");
+ if(c.length!=4) return alert("Enter code");
 
-  G.name = n;
-  G.room = c;
-  G.isHost = false;
-
-  G.players = []; // 🔥 no fake self add
-
-  show('guest');
-  sub(c);
+ G.name=n; G.room=c;
+ show('guest');
+ sub(c);
 }
 
 // ===== RENDER =====
 function render(){
-  const html = G.players.map(p=>`<div class="player-tag">${p}</div>`).join('');
-
-  const el1 = document.getElementById('players');
-  const el2 = document.getElementById('players2');
-
-  if(el1) el1.innerHTML = html;
-  if(el2) el2.innerHTML = html;
-
-  const txt = `${G.players.length} player${G.players.length!==1?'s':''} in lobby`;
-
-  if(document.getElementById('playerCount'))
-    document.getElementById('playerCount').innerText = txt;
-
-  if(document.getElementById('playerCount2'))
-    document.getElementById('playerCount2').innerText = txt;
+ let html = G.players.map(p=>`<div class="player">${p}</div>`).join('');
+ document.getElementById('players').innerHTML = html;
+ document.getElementById('players2').innerHTML = html;
 }
 
-// ===== START GAME =====
+// ===== START =====
 async function startGame(){
-  if(!G.isHost) return;
+ if(G.players.length<2) return alert("Need 2 players");
 
-  if(G.players.length < 2){
-    return showToast("Need 2 players","wrong");
-  }
+ let q = buildQ();
 
-  let q = buildQ();
-
-  await G.channel.send({
-    type:'broadcast',
-    event:'start',
-    payload:q
-  });
+ await G.channel.send({
+  type:'broadcast',
+  event:'start',
+  payload:q
+ });
 }
 
 // ===== QUIZ =====
 function startQuiz(){
-  G.i = 0;
-  G.score = 0;
-  show('quiz');
-  loadQ();
+ G.i=0; G.score=0;
+ show('quiz');
+ loadQ();
 }
 
 function loadQ(){
-  let x = G.q[G.i];
+ let x = G.q[G.i];
+ document.getElementById('q').innerText = x.q;
+ document.getElementById('score').innerText = G.score;
 
-  document.getElementById('q').innerText = x.q;
-  document.getElementById('qCounter').innerText = `Q ${G.i+1}/25`;
-  document.getElementById('progressBar').style.width = ((G.i/25)*100)+'%';
-  document.getElementById('scoreDisplay').innerText = G.score;
-
-  const letters = ['A','B','C','D'];
-
-  document.getElementById('opts').innerHTML = x.a.map((o,i)=>
-    `<button class="opt-btn" onclick="ans(${i},this)" id="opt${i}">
-      <span class="opt-letter">${letters[i]}</span>${o}
-    </button>`
-  ).join('');
+ document.getElementById('opts').innerHTML = x.a.map((o,i)=>
+  `<button onclick="ans(${i})">${o}</button>`
+ ).join('');
 }
 
-function ans(i,btn){
-  let x = G.q[G.i];
-  let correct = (i===x.c);
+function ans(i){
+ let x = G.q[G.i];
 
-  document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+ if(i===x.c) G.score++;
 
-  btn.classList.add(correct?'correct':'wrong');
-  document.getElementById('opt'+x.c).classList.add('correct');
-
-  if(correct){
-    G.score++;
-    showToast("Correct","correct");
-  } else {
-    showToast("Wrong","wrong");
-  }
-
-  setTimeout(()=>{
-    G.i++;
-    if(G.i<25) loadQ();
-    else endGame();
-  },1000);
+ G.i++;
+ if(G.i < G.q.length) loadQ();
+ else endGame();
 }
 
 function endGame(){
-  document.getElementById('finalScore').innerText = G.score;
-  show('gameover');
-}
-
-// ===== TOAST =====
-function showToast(msg,type){
-  const t = document.getElementById('feedback-toast');
-  t.textContent = msg;
-  t.className = 'show ' + type;
-  setTimeout(()=> t.className='',1500);
+ document.getElementById('final').innerText = "Score: "+G.score;
+ show('gameover');
 }
 </script>
+
+</body>
+</html>
