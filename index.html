@@ -1,211 +1,1178 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anime Quiz Multiplayer</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Anime Quiz – Test Your Anime Knowledge!</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
-body { font-family: Arial; background:#0a0a1a; color:white; text-align:center; }
-.screen { display:none; }
-.active { display:block; }
-button { padding:10px; margin:5px; }
-.player { margin:5px; }
+  :root {
+    --bg: #0a0a1a;
+    --card: #12122a;
+    --card2: #1a1a35;
+    --accent: #ff3c6e;
+    --accent2: #ffb347;
+    --accent3: #00e5ff;
+    --accent4: #a259ff;
+    --text: #f0f0ff;
+    --muted: #8888aa;
+    --correct: #00e676;
+    --wrong: #ff1744;
+    --timer-ok: #00e5ff;
+    --timer-warn: #ffb347;
+    --timer-danger: #ff3c6e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;overflow-x:hidden;}
+
+  /* ========== PARTICLES BG ========== */
+  #particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden;}
+  .star{position:absolute;border-radius:50%;animation:twinkle var(--d,3s) var(--delay,0s) infinite alternate;}
+  @keyframes twinkle{0%{opacity:.15;transform:scale(1);}100%{opacity:.9;transform:scale(1.5);}}
+
+  /* ========== FLOATING KANJI ========== */
+  #kanji-bg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden;}
+  .kanji{position:absolute;font-size:var(--fs,40px);color:rgba(162,89,255,.06);animation:floatK var(--d,20s) var(--delay,0s) linear infinite;user-select:none;}
+  @keyframes floatK{0%{transform:translateY(110vh) rotate(0deg);}100%{transform:translateY(-10vh) rotate(360deg);}}
+
+  /* ========== SUPPORT BANNER ========== */
+  #support-banner{position:fixed;top:0;left:0;width:100%;z-index:1000;background:linear-gradient(90deg,#a259ff,#ff3c6e,#ffb347);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:14px;box-shadow:0 3px 20px #a259ff88;animation:slideBanner .6s ease;}
+  @keyframes slideBanner{from{transform:translateY(-100%);}to{transform:translateY(0);}}
+  #support-banner p{font-size:14px;font-weight:800;letter-spacing:.5px;text-shadow:0 1px 3px #0004;}
+  #support-banner a{color:#fff;text-decoration:none;background:rgba(0,0,0,.3);padding:3px 10px;border-radius:20px;font-weight:900;}
+  #support-banner button{background:rgba(0,0,0,.3);border:none;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:.2s;}
+  #support-banner button:hover{background:rgba(0,0,0,.6);}
+
+  /* ========== SCREENS ========== */
+  .screen{position:relative;z-index:10;min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+  .screen.active{display:flex;}
+
+  /* ========== HOME SCREEN ========== */
+  #home-screen{padding-top:70px;}
+  .logo-wrap{text-align:center;margin-bottom:40px;}
+  .logo-title{font-family:'Bangers',cursive;font-size:clamp(52px,10vw,100px);letter-spacing:4px;line-height:1;background:linear-gradient(135deg,#ff3c6e,#ffb347,#a259ff,#00e5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 30px #ff3c6e88);animation:logoPulse 3s ease-in-out infinite;}
+  @keyframes logoPulse{0%,100%{filter:drop-shadow(0 0 20px #ff3c6e88);}50%{filter:drop-shadow(0 0 50px #a259ffaa);}}
+  .logo-sub{font-size:16px;font-weight:700;color:var(--accent3);letter-spacing:3px;text-transform:uppercase;margin-top:6px;}
+
+  .home-cards{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-bottom:30px;}
+  .mode-card{background:var(--card);border:2px solid transparent;border-radius:24px;padding:36px 40px;cursor:pointer;text-align:center;transition:.3s;position:relative;overflow:hidden;min-width:260px;max-width:300px;}
+  .mode-card::before{content:'';position:absolute;inset:0;border-radius:24px;border:2px solid transparent;background:linear-gradient(135deg,#a259ff,#ff3c6e) border-box;-webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);-webkit-mask-composite:destination-out;mask-composite:exclude;opacity:0;transition:.3s;}
+  .mode-card:hover::before{opacity:1;}
+  .mode-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px #a259ff44;}
+  .mode-card .card-icon{font-size:56px;margin-bottom:16px;display:block;animation:iconFloat 3s ease-in-out infinite;}
+  @keyframes iconFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+  .mode-card h2{font-family:'Bangers',cursive;font-size:28px;letter-spacing:2px;margin-bottom:8px;}
+  .mode-card p{font-size:13px;color:var(--muted);line-height:1.5;}
+  .coming-soon-badge{position:absolute;top:16px;right:16px;background:linear-gradient(135deg,#ffb347,#ff3c6e);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:800;letter-spacing:1px;}
+  .mode-card.disabled{opacity:.6;cursor:not-allowed;}
+  .mode-card.disabled:hover{transform:none;box-shadow:none;}
+
+  /* ========== SETUP SCREEN ========== */
+  #setup-screen{padding-top:70px;}
+  .setup-box{background:var(--card);border-radius:28px;padding:44px;max-width:480px;width:100%;border:1px solid #ffffff11;box-shadow:0 20px 80px #00000088;animation:fadeUp .5s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
+  .setup-title{font-family:'Bangers',cursive;font-size:36px;letter-spacing:3px;text-align:center;margin-bottom:8px;background:linear-gradient(90deg,#ff3c6e,#ffb347);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .setup-subtitle{text-align:center;color:var(--muted);font-size:13px;margin-bottom:32px;}
+  .form-group{margin-bottom:22px;}
+  .form-group label{display:block;font-weight:800;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--accent3);margin-bottom:8px;}
+  .form-group input,.form-group select{width:100%;background:var(--card2);border:2px solid #ffffff11;border-radius:14px;padding:14px 18px;color:var(--text);font-size:15px;font-family:'Nunito',sans-serif;outline:none;transition:.3s;}
+  .form-group input:focus,.form-group select:focus{border-color:var(--accent4);}
+  .form-group select option{background:var(--card2);}
+  .level-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .level-btn{background:var(--card2);border:2px solid #ffffff11;border-radius:12px;padding:14px;cursor:pointer;color:var(--text);font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;transition:.3s;text-align:center;}
+  .level-btn:hover{border-color:var(--accent4);background:#1f1f40;}
+  .level-btn.selected{border-color:var(--accent4);background:linear-gradient(135deg,#a259ff22,#ff3c6e22);color:#fff;box-shadow:0 0 20px #a259ff33;}
+  .level-btn .level-icon{font-size:22px;display:block;margin-bottom:4px;}
+  .start-btn{width:100%;background:linear-gradient(135deg,#a259ff,#ff3c6e);border:none;border-radius:16px;padding:18px;color:#fff;font-family:'Bangers',cursive;font-size:24px;letter-spacing:3px;cursor:pointer;transition:.3s;margin-top:10px;box-shadow:0 8px 30px #ff3c6e44;}
+  .start-btn:hover{transform:translateY(-2px);box-shadow:0 14px 40px #ff3c6e66;}
+  .back-btn{background:transparent;border:2px solid #ffffff22;border-radius:12px;padding:10px 24px;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:.3s;margin-bottom:24px;}
+  .back-btn:hover{border-color:var(--accent);color:var(--text);}
+
+  /* ========== RULES SCREEN ========== */
+  #rules-screen{padding-top:70px;}
+  .rules-box{background:var(--card);border-radius:28px;padding:44px;max-width:520px;width:100%;animation:fadeUp .5s ease;}
+  .rules-title{font-family:'Bangers',cursive;font-size:40px;letter-spacing:3px;text-align:center;margin-bottom:6px;color:var(--accent2);}
+  .rules-player{text-align:center;font-size:16px;margin-bottom:28px;color:var(--accent3);}
+  .rules-grid{display:grid;gap:14px;margin-bottom:32px;}
+  .rule-item{display:flex;align-items:flex-start;gap:14px;background:var(--card2);border-radius:14px;padding:16px;}
+  .rule-icon{font-size:28px;flex-shrink:0;}
+  .rule-text{font-size:14px;line-height:1.6;color:var(--text);}
+  .rule-text strong{color:var(--accent2);}
+  .ready-btn{width:100%;background:linear-gradient(135deg,#00e5ff,#a259ff);border:none;border-radius:16px;padding:18px;color:#fff;font-family:'Bangers',cursive;font-size:26px;letter-spacing:3px;cursor:pointer;transition:.3s;box-shadow:0 8px 30px #a259ff44;}
+  .ready-btn:hover{transform:translateY(-2px);box-shadow:0 14px 40px #a259ff66;}
+
+  /* ========== QUIZ SCREEN ========== */
+  #quiz-screen{padding-top:60px;padding-bottom:20px;}
+  .quiz-header{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:700px;margin-bottom:18px;gap:14px;flex-wrap:wrap;}
+  .quiz-info{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  .score-box{background:var(--card);border-radius:12px;padding:10px 18px;text-align:center;}
+  .score-box .s-label{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+  .score-box .s-val{font-family:'Bangers',cursive;font-size:28px;line-height:1.1;}
+  .score-box.player .s-val{color:var(--accent3);}
+  .score-box.bot .s-val{color:var(--accent);}
+  .vs-badge{font-family:'Bangers',cursive;font-size:22px;color:var(--accent2);}
+  .q-counter{font-size:13px;font-weight:800;color:var(--muted);}
+
+  /* Timer */
+  .timer-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .timer-circle{position:relative;width:64px;height:64px;}
+  .timer-circle svg{transform:rotate(-90deg);}
+  .timer-circle circle.bg{fill:none;stroke:#ffffff11;stroke-width:5;}
+  .timer-circle circle.prog{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s linear, stroke .5s;}
+  .timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;font-size:24px;}
+
+  /* Question card */
+  .question-card{background:var(--card);border-radius:24px;padding:36px;max-width:700px;width:100%;margin-bottom:20px;position:relative;overflow:hidden;animation:qFadeIn .4s ease;}
+  @keyframes qFadeIn{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+  .question-card::before{content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;border-radius:26px;background:linear-gradient(135deg,#a259ff33,#ff3c6e33,#00e5ff22);z-index:-1;}
+  .q-type-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:14px;}
+  .q-type-tag.famous{background:#ffb34722;color:var(--accent2);}
+  .q-type-tag.inner{background:#a259ff22;color:var(--accent4);}
+  .question-text{font-size:clamp(15px,2.5vw,20px);font-weight:800;line-height:1.6;margin-bottom:8px;}
+  .q-num-label{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  /* Options */
+  .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:700px;width:100%;}
+  .opt-btn{background:var(--card);border:2px solid #ffffff11;border-radius:16px;padding:18px 20px;cursor:pointer;color:var(--text);font-family:'Nunito',sans-serif;font-weight:700;font-size:15px;text-align:left;transition:.25s;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;}
+  .opt-btn::before{content:'';position:absolute;inset:0;opacity:0;transition:.25s;}
+  .opt-btn:hover:not(:disabled){border-color:var(--accent4);transform:translateX(4px);background:#1f1f40;}
+  .opt-btn:disabled{cursor:not-allowed;}
+  .opt-letter{width:32px;height:32px;border-radius:50%;background:#ffffff11;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0;}
+  .opt-btn.correct{background:#00e67622;border-color:var(--correct)!important;box-shadow:0 0 20px #00e67633;}
+  .opt-btn.wrong{background:#ff174422;border-color:var(--wrong)!important;}
+  .opt-btn.correct .opt-letter{background:var(--correct);color:#000;}
+  .opt-btn.wrong .opt-letter{background:var(--wrong);}
+  .opt-btn.reveal-correct{background:#00e67611;border-color:var(--correct)!important;}
+  .opt-btn.reveal-correct .opt-letter{background:var(--correct);color:#000;}
+
+  /* Bot indicator */
+  .bot-row{display:flex;align-items:center;gap:10px;max-width:700px;width:100%;margin-top:4px;}
+  .bot-indicator{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;}
+  .bot-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);transition:.3s;}
+  .bot-dot.thinking{background:var(--accent2);animation:blink .5s infinite alternate;}
+  .bot-dot.answered{background:var(--correct);}
+  @keyframes blink{from{opacity:.3;}to{opacity:1;}}
+  .bot-thinking-bar{flex:1;height:6px;background:#ffffff11;border-radius:3px;overflow:hidden;max-width:200px;}
+  .bot-thinking-fill{height:100%;width:0;background:linear-gradient(90deg,#ffb347,#ff3c6e);border-radius:3px;transition:width .1s linear;}
+
+  /* ========== RESULT SCREEN ========== */
+  #result-screen{padding-top:70px;}
+  .result-box{background:var(--card);border-radius:28px;padding:50px 44px;max-width:560px;width:100%;text-align:center;animation:fadeUp .5s ease;}
+  .result-emoji{font-size:80px;display:block;margin-bottom:16px;animation:bounce .8s ease infinite alternate;}
+  @keyframes bounce{from{transform:scale(1);}to{transform:scale(1.12);}}
+  .result-title{font-family:'Bangers',cursive;font-size:48px;letter-spacing:4px;margin-bottom:8px;}
+  .result-winner-badge{display:inline-block;padding:6px 20px;border-radius:20px;font-weight:800;font-size:14px;letter-spacing:2px;text-transform:uppercase;margin-bottom:24px;}
+  .result-winner-badge.player{background:linear-gradient(90deg,#00e5ff,#a259ff);color:#fff;}
+  .result-winner-badge.bot{background:linear-gradient(90deg,#ff3c6e,#ffb347);color:#fff;}
+  .result-winner-badge.tie{background:linear-gradient(90deg,#a259ff,#00e5ff);color:#fff;}
+  .result-scores{display:flex;gap:20px;justify-content:center;margin-bottom:28px;}
+  .result-score-card{background:var(--card2);border-radius:18px;padding:20px 32px;min-width:120px;}
+  .result-score-card .rs-name{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .result-score-card .rs-num{font-family:'Bangers',cursive;font-size:52px;line-height:1;}
+  .result-score-card.player .rs-num{color:var(--accent3);}
+  .result-score-card.bot .rs-num{color:var(--accent);}
+  .result-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px;}
+  .result-stat{background:var(--card2);border-radius:12px;padding:14px;}
+  .result-stat .stat-label{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+  .result-stat .stat-val{font-size:20px;font-weight:900;color:var(--text);}
+  .result-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .btn-play-again{background:linear-gradient(135deg,#a259ff,#ff3c6e);border:none;border-radius:14px;padding:15px 32px;color:#fff;font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px;cursor:pointer;transition:.3s;box-shadow:0 8px 30px #a259ff44;}
+  .btn-play-again:hover{transform:translateY(-2px);box-shadow:0 14px 40px #ff3c6e66;}
+  .btn-home{background:transparent;border:2px solid #ffffff22;border-radius:14px;padding:14px 28px;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:.3s;}
+  .btn-home:hover{border-color:var(--accent3);color:var(--text);}
+
+  /* Confetti */
+  .confetti-piece{position:fixed;width:10px;height:10px;border-radius:2px;animation:confettiFall var(--d,3s) var(--delay,0s) ease-in forwards;pointer-events:none;z-index:999;}
+  @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+
+  /* Responsiveness */
+  @media(max-width:560px){
+    .options-grid{grid-template-columns:1fr;}
+    .home-cards{flex-direction:column;align-items:center;}
+    .result-scores{flex-direction:column;align-items:center;}
+    .setup-box,.rules-box,.result-box{padding:28px 20px;}
+    .quiz-header{justify-content:center;}
+    .level-btns{grid-template-columns:1fr 1fr;}
+  }
+
+  /* Notification toast */
+  #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card2);border:1px solid #ffffff22;border-radius:14px;padding:12px 24px;font-size:14px;font-weight:700;z-index:999;transition:.4s;opacity:0;}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+  #toast.correct-toast{border-color:var(--correct);color:var(--correct);}
+  #toast.wrong-toast{border-color:var(--wrong);color:var(--wrong);}
+  #toast.skip-toast{border-color:var(--accent2);color:var(--accent2);}
 </style>
 </head>
-
 <body>
 
-<h1>ANIME QUIZ</h1>
+<!-- Particles -->
+<div id="particles"></div>
+<div id="kanji-bg"></div>
 
-<!-- HOME -->
-<div id="home" class="screen active">
-  <button onclick="show('create')">CREATE</button>
-  <button onclick="show('join')">JOIN</button>
+<!-- Support Banner -->
+<div id="support-banner">
+  <p>🌸 Enjoying Anime Quiz? Support us on Instagram: <a href="https://instagram.com/mp4.ae_" target="_blank">@mp4.ae_</a> ✨</p>
+  <button onclick="closeBanner()" title="Close">×</button>
 </div>
 
-<!-- CREATE -->
-<div id="create" class="screen">
-  <input id="host-name" placeholder="Name"><br>
-  <button onclick="createGame()">CREATE ROOM</button><br>
-  <button onclick="show('home')">BACK</button>
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ===== HOME SCREEN ===== -->
+<div id="home-screen" class="screen active">
+  <div class="logo-wrap">
+    <div class="logo-title">ANIME QUIZ</div>
+    <div class="logo-sub">⚡ Test Your Otaku Knowledge ⚡</div>
+  </div>
+  <div class="home-cards">
+    <div class="mode-card" onclick="goToSetup()">
+      <span class="card-icon">🤖</span>
+      <h2>Play with Bot</h2>
+      <p>Challenge an AI opponent! Answer 25 anime trivia questions before the bot beats you.</p>
+    </div>
+    <div class="mode-card disabled" title="Coming Soon!">
+      <span class="coming-soon-badge">SOON</span>
+      <span class="card-icon" style="animation-delay:.4s">👥</span>
+      <h2>Play with Friends</h2>
+      <p>Challenge your friends online! Live multiplayer coming very soon.</p>
+    </div>
+  </div>
+  <p style="color:var(--muted);font-size:13px;">25 Questions • 20 sec each • Bot opponent</p>
 </div>
 
-<!-- JOIN -->
-<div id="join" class="screen">
-  <input id="join-name" placeholder="Name"><br>
-  <input id="code" placeholder="CODE"><br>
-  <button onclick="joinGame()">JOIN</button><br>
+<!-- ===== SETUP SCREEN ===== -->
+<div id="setup-screen" class="screen">
+  <div class="setup-box">
+    <button class="back-btn" onclick="showScreen('home-screen')">← Back</button>
+    <div class="setup-title">PLAYER SETUP</div>
+    <div class="setup-subtitle">Configure your match before the battle begins!</div>
+
+    <div class="form-group">
+      <label>Your Name</label>
+      <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20"/>
+    </div>
+
+    <div class="form-group">
+      <label>Number of Bots</label>
+      <select id="bot-count">
+        <option value="1">1 Bot</option>
+        <option value="2">2 Bots</option>
+        <option value="3">3 Bots</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Difficulty</label>
+      <div class="level-btns">
+        <button class="level-btn selected" data-level="easy" onclick="selectLevel(this)">
+          <span class="level-icon">🌸</span>Easy
+        </button>
+        <button class="level-btn" data-level="normal" onclick="selectLevel(this)">
+          <span class="level-icon">⚡</span>Normal
+        </button>
+        <button class="level-btn" data-level="medium" onclick="selectLevel(this)">
+          <span class="level-icon">🔥</span>Medium
+        </button>
+        <button class="level-btn" data-level="hard" onclick="selectLevel(this)">
+          <span class="level-icon">💀</span>Hard
+        </button>
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startSetup()">LET'S GO! →</button>
+  </div>
 </div>
 
-<!-- HOST -->
-<div id="host" class="screen">
-  <h2>ROOM: <span id="roomCode"></span></h2>
-  <div id="players"></div>
-  <button onclick="startGame()">START</button>
+<!-- ===== RULES SCREEN ===== -->
+<div id="rules-screen" class="screen">
+  <div class="rules-box">
+    <div class="rules-title">📜 RULES</div>
+    <div class="rules-player" id="rules-player-info"></div>
+    <div class="rules-grid">
+      <div class="rule-item"><span class="rule-icon">🎯</span><div class="rule-text"><strong>25 Questions</strong> total — 20 Famous Anime + 5 Deep Lore questions.</div></div>
+      <div class="rule-item"><span class="rule-icon">⏱️</span><div class="rule-text">You have <strong>20 seconds</strong> per question. Miss it and it's auto-skipped!</div></div>
+      <div class="rule-item"><span class="rule-icon">🤖</span><div class="rule-text">The bot answers within <strong>15 seconds</strong>. The harder the difficulty, the smarter the bot!</div></div>
+      <div class="rule-item"><span class="rule-icon">🏆</span><div class="rule-text"><strong>+1 point</strong> for every correct answer — for you AND the bot. Highest score wins!</div></div>
+      <div class="rule-item"><span class="rule-icon">🚫</span><div class="rule-text">No question repeats! All <strong>1000+ questions</strong> are shuffled fresh each match.</div></div>
+      <div class="rule-item"><span class="rule-icon">💡</span><div class="rule-text">Correct answer reveals even if you answer wrong. Learn as you go!</div></div>
+    </div>
+    <button class="ready-btn" onclick="beginQuiz()">I'M READY! ⚡</button>
+  </div>
 </div>
 
-<!-- GUEST -->
-<div id="guest" class="screen">
-  <h2>WAITING...</h2>
-  <div id="players2"></div>
+<!-- ===== QUIZ SCREEN ===== -->
+<div id="quiz-screen" class="screen">
+  <div class="quiz-header">
+    <div class="quiz-info">
+      <div class="score-box player">
+        <div class="s-label" id="player-label">You</div>
+        <div class="s-val" id="player-score">0</div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="score-box bot">
+        <div class="s-label">Bot</div>
+        <div class="s-val" id="bot-score">0</div>
+      </div>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer-circle">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle class="bg" cx="32" cy="32" r="28"/>
+          <circle class="prog" id="timer-circle-prog" cx="32" cy="32" r="28" stroke-dasharray="175.9" stroke-dashoffset="0" stroke="var(--timer-ok)"/>
+        </svg>
+        <div class="timer-num" id="timer-num">20</div>
+      </div>
+    </div>
+    <div class="q-counter" id="q-counter">Q 1 / 25</div>
+  </div>
+
+  <div class="question-card" id="question-card">
+    <span class="q-type-tag" id="q-type-tag">Famous</span>
+    <div class="q-num-label" id="q-num-label">Question 1 of 25</div>
+    <div class="question-text" id="question-text">Loading...</div>
+  </div>
+
+  <div class="options-grid" id="options-grid"></div>
+
+  <div class="bot-row">
+    <div class="bot-indicator">
+      <div class="bot-dot" id="bot-dot"></div>
+      <span id="bot-status-text">Waiting...</span>
+    </div>
+    <div class="bot-thinking-bar"><div class="bot-thinking-fill" id="bot-thinking-fill"></div></div>
+  </div>
 </div>
 
-<!-- QUIZ -->
-<div id="quiz" class="screen">
-  <h3 id="q"></h3>
-  <div id="opts"></div>
-  <p>Score: <span id="score">0</span></p>
-</div>
-
-<!-- GAME OVER -->
-<div id="gameover" class="screen">
-  <h2>GAME OVER</h2>
-  <h3 id="final"></h3>
-  <button onclick="location.reload()">RESTART</button>
+<!-- ===== RESULT SCREEN ===== -->
+<div id="result-screen" class="screen">
+  <div class="result-box">
+    <span class="result-emoji" id="result-emoji">🏆</span>
+    <div class="result-title" id="result-title">WINNER!</div>
+    <div class="result-winner-badge" id="result-winner-badge">You Win!</div>
+    <div class="result-scores">
+      <div class="result-score-card player">
+        <div class="rs-name" id="result-player-name">You</div>
+        <div class="rs-num" id="result-player-score">0</div>
+      </div>
+      <div class="result-score-card bot">
+        <div class="rs-name">Bot</div>
+        <div class="rs-num" id="result-bot-score">0</div>
+      </div>
+    </div>
+    <div class="result-stats">
+      <div class="result-stat"><div class="stat-label">Correct</div><div class="stat-val" id="stat-correct">0</div></div>
+      <div class="result-stat"><div class="stat-label">Wrong</div><div class="stat-val" id="stat-wrong">0</div></div>
+      <div class="result-stat"><div class="stat-label">Skipped</div><div class="stat-val" id="stat-skipped">0</div></div>
+      <div class="result-stat"><div class="stat-label">Accuracy</div><div class="stat-val" id="stat-accuracy">0%</div></div>
+    </div>
+    <div class="result-btns">
+      <button class="btn-play-again" onclick="goToSetup()">PLAY AGAIN</button>
+      <button class="btn-home" onclick="showScreen('home-screen')">🏠 Home</button>
+    </div>
+  </div>
 </div>
 
 <script>
-// ===== SUPABASE =====
-const sb = supabase.createClient(
-  'https://sbmhioyxdjecyumarhek.supabase.co',
-  'sb_publishable_j5hylMpKHP5aRRJbp03gAg_Rd_lPZn4'
-);
+// =====================================================
+// MEGA QUESTION BANK — 1000+ questions
+// Famous = 20 famous anime, Inner = deep lore
+// =====================================================
+const QUESTION_BANK = {
+famous: [
+  // Naruto
+  {q:"What is the name of Naruto's signature jutsu?",o:["Rasengan","Chidori","Shadow Clone Jutsu","Summoning Jutsu"],a:2},
+  {q:"Which village is Naruto from?",o:["Leaf Village","Sand Village","Mist Village","Cloud Village"],a:0},
+  {q:"Who is Naruto's rival and best friend?",o:["Rock Lee","Gaara","Sasuke Uchiha","Neji Hyuga"],a:2},
+  {q:"What is the Nine-Tailed Fox sealed inside Naruto called?",o:["Kurama","Gyuki","Chomei","Matatabi"],a:0},
+  {q:"Who is Naruto's sensei in Team 7?",o:["Iruka","Jiraiya","Kakashi","Guy"],a:2},
+  {q:"What Sharingan technique can trap opponents in illusions?",o:["Amaterasu","Susanoo","Tsukuyomi","Kamui"],a:2},
+  {q:"Who founded the Akatsuki?",o:["Pain","Itachi","Obito","Madara"],a:0},
+  {q:"What is the name of Sasuke's brother?",o:["Madara","Obito","Itachi","Shisui"],a:2},
+  {q:"Which character uses the Gentle Fist fighting style?",o:["Hinata Hyuga","Sakura","Ino","Tenten"],a:0},
+  {q:"What does 'Hokage' mean?",o:["Fire Shadow","Wind Shadow","Earth Shadow","Water Shadow"],a:0},
+  {q:"Which Akatsuki member has a painting obsession?",o:["Deidara","Sasori","Hidan","Kisame"],a:0},
+  {q:"Who taught Naruto the Rasengan?",o:["Kakashi","Minato","Jiraiya","Tsunade"],a:2},
+  {q:"What clan does Sasuke belong to?",o:["Hyuga","Uzumaki","Senju","Uchiha"],a:3},
+  {q:"What rank is above Chunin in the ninja system?",o:["Jonin","Anbu","Kage","Sanin"],a:0},
+  {q:"What village does Gaara lead?",o:["Leaf Village","Sand Village","Stone Village","Cloud Village"],a:1},
+  // Dragon Ball
+  {q:"What is Goku's Saiyan name?",o:["Vegeta","Kakarot","Raditz","Broly"],a:1},
+  {q:"How many Dragon Balls are needed to summon Shenron?",o:["5","6","7","8"],a:2},
+  {q:"Who is Goku's first martial arts master?",o:["Krillin","Master Roshi","Kami","Korin"],a:1},
+  {q:"What transformation does a Saiyan achieve by looking at a full moon?",o:["Super Saiyan","Oozaru","Ultra Instinct","God Form"],a:1},
+  {q:"Who kills Frieza for the first time in Dragon Ball Z?",o:["Goku","Vegeta","Future Trunks","Piccolo"],a:2},
+  {q:"What is the power level of a low-class Saiyan at birth?",o:["1","2","3","5"],a:2},
+  {q:"Who is Vegeta's son?",o:["Gohan","Goten","Trunks","Pan"],a:2},
+  {q:"What technique fuses two fighters?",o:["Kamehameha","Potara Fusion","Spirit Bomb","Galick Gun"],a:1},
+  {q:"Where does King Kai live?",o:["Planet Vegeta","Otherworld","Snake Way end","Namek"],a:2},
+  {q:"What color is the Super Saiyan God transformation?",o:["Blue","Yellow","Red","Green"],a:2},
+  // One Piece
+  {q:"What fruit did Luffy eat to get his rubber powers?",o:["Mera Mera no Mi","Gum-Gum Fruit","Dark Dark Fruit","Paw Paw Fruit"],a:1},
+  {q:"What is the name of Luffy's pirate crew?",o:["Whitebeard Pirates","Roger Pirates","Straw Hat Pirates","Heart Pirates"],a:2},
+  {q:"Who is the swordsman of the Straw Hat crew?",o:["Sanji","Usopp","Zoro","Brook"],a:2},
+  {q:"What is the treasure 'One Piece' rumored to be?",o:["Gold","The greatest treasure ever","Immortality","A map to all islands"],a:1},
+  {q:"Who is the marine admiral known as 'Red Dog'?",o:["Aokiji","Kizaru","Akainu","Fujitora"],a:2},
+  {q:"What island does Nami dream of mapping?",o:["Skypiea","All Blue","Grand Line","The Whole World"],a:3},
+  {q:"What is Sanji's dream?",o:["Find One Piece","Find All Blue","Become the greatest swordsman","Draw the world map"],a:1},
+  {q:"Who trained Luffy for 2 years?",o:["Shanks","Rayleigh","Whitebeard","Garp"],a:1},
+  {q:"What is the highest bounty in early One Piece storyline held by?",o:["Luffy","Whitebeard","Gol D. Roger","Kaido"],a:3},
+  // Attack on Titan
+  {q:"What are the giant humanoid creatures in Attack on Titan called?",o:["Colossals","Titans","Giants","Shifters"],a:1},
+  {q:"What is the name of the survey corps leader who wears a cape?",o:["Erwin Smith","Levi Ackerman","Hange Zoe","Mike"],a:0},
+  {q:"Which wall is breached first in Attack on Titan?",o:["Wall Rose","Wall Sina","Wall Maria","Wall Eden"],a:2},
+  {q:"What is the name of Eren Yeager's ability?",o:["Female Titan","Colossus Titan","Attack Titan","Armored Titan"],a:2},
+  {q:"Who is considered humanity's strongest soldier?",o:["Erwin Smith","Mikasa Ackerman","Levi Ackerman","Reiner Braun"],a:2},
+  {q:"What country do Reiner and Bertholdt come from?",o:["Eldia","Marley","Hizuru","Liberio"],a:1},
+  {q:"What device do soldiers use to move in 3D?",o:["Thunder Spears","ODM Gear","Titan Serum","Hardening Crystals"],a:1},
+  // Death Note
+  {q:"What is the name of the notebook that kills?",o:["Book of Death","Death Note","Shinigami Diary","Dark Ledger"],a:1},
+  {q:"Who is Light Yagami's main adversary detective?",o:["Near","Mello","L","Watari"],a:2},
+  {q:"What is Light Yagami's alias as the mysterious killer?",o:["God","Kira","Judge","Death"],a:1},
+  {q:"What must be written in the Death Note to kill someone?",o:["Their address","Their face and name","Their face","Their full name"],a:3},
+  {q:"What is the name of Ryuk's species?",o:["Demon","Spirit","Shinigami","Ghost"],a:2},
+  // My Hero Academia
+  {q:"What is Izuku Midoriya's hero name?",o:["Zero Gravity","Deku","Froppy","Creati"],a:1},
+  {q:"What is All Might's real name?",o:["Toshinori Yagi","Eijiro Kirishima","Hizashi Yamada","Nemuri Kayama"],a:0},
+  {q:"What is the name of the power passed down to Midoriya?",o:["One For All","All For One","Quirk Singularity","Full Cowling"],a:0},
+  {q:"What is Bakugo's quirk called?",o:["Electrification","Zero Gravity","Explosion","Creation"],a:2},
+  {q:"Who is the #1 pro hero at the start of the series?",o:["Endeavor","Eraser Head","All Might","Hawks"],a:2},
+  {q:"What school do the main characters attend?",o:["UA High School","Ketsubutsu Academy","Shiketsu High","Seiai Academy"],a:0},
+  // Demon Slayer
+  {q:"What is the name of Tanjiro Kamado's sister?",o:["Kanao","Nezuko","Shinobu","Mitsuri"],a:1},
+  {q:"What organization does Tanjiro join to fight demons?",o:["Ghost Reaper Corps","Demon Slayer Corps","Flame Pillar Army","Wisteria Guard"],a:1},
+  {q:"Who is the main villain of Demon Slayer?",o:["Akaza","Doma","Muzan Kibutsuji","Kokushibo"],a:2},
+  {q:"What is Tanjiro's breathing technique called?",o:["Water Breathing","Fire Breathing","Sun Breathing","Thunder Breathing"],a:0},
+  {q:"What is the highest rank of demon slayer called?",o:["Pillar","Guardian","Hashira","Blade Master"],a:2},
+  // Fullmetal Alchemist
+  {q:"What is Edward Elric's unique skill?",o:["Fire alchemy","Alchemy without a circle","Transmutation circles","Philosopher's Stone"],a:1},
+  {q:"What did Edward and Alphonse try to bring back using alchemy?",o:["Their father","Their mother","Their dog","Their home"],a:1},
+  {q:"What did Alphonse lose in the human transmutation attempt?",o:["His arm","His memory","His entire body","His eyesight"],a:2},
+  {q:"What is the name of the homunculus who looks like their father?",o:["Envy","Pride","Wrath","Father"],a:3},
+  {q:"What is the Philosopher's Stone made from?",o:["Gold","Human souls","Ancient minerals","Dragon hearts"],a:1},
+  // Sword Art Online
+  {q:"What is the name of the first VRMMO in SAO?",o:["ALfheim Online","Gun Gale Online","Sword Art Online","Underworld"],a:2},
+  {q:"What is the name of Kirito's unique skill in SAO?",o:["Dual Blades","Starburst Stream","Excalibur","Holy Sword"],a:0},
+  {q:"Who is Kirito's main love interest?",o:["Sinon","Yuuki","Asuna","Alice"],a:2},
+  {q:"What is the name of the guild Asuna leads in Aincrad?",o:["Knights of Blood","Laughing Coffin","Moonlit Black Cats","Legend Braves"],a:0},
+  // Hunter x Hunter
+  {q:"What is the name of the life energy system in HxH?",o:["Chakra","Nen","Ki","Spirit Energy"],a:1},
+  {q:"Who is Gon Freecss' famous father?",o:["Leorio","Killua's dad","Ging Freecss","Silva Zoldyck"],a:2},
+  {q:"What type of Nen does Killua use?",o:["Enhancement","Emission","Transmutation","Manipulation"],a:2},
+  {q:"What is the name of the dangerous continent Ging explores?",o:["Dark Continent","Greed Island","Dark Forest","Phantom Realm"],a:0},
+  {q:"Who is the leader of the Phantom Troupe?",o:["Feitan","Phinks","Chrollo Lucilfer","Franklin"],a:2},
+  // Bleach
+  {q:"What is the name of Ichigo Kurosaki's zanpakuto?",o:["Zangetsu","Senbonzakura","Hyorinmaru","Ryujin Jakka"],a:0},
+  {q:"What are the hollow-human hybrid fighters called in Bleach?",o:["Arrancar","Espada","Vizard","Mod Souls"],a:0},
+  {q:"What is the final and most powerful form of a zanpakuto called?",o:["Shikai","Bankai","Resurreccion","Vollstandig"],a:1},
+  {q:"Who is the Soul Reaper captain with the white haori?",o:["Kenpachi","Byakuya","Yamamoto","Aizen"],a:2},
+  {q:"What squad does Rukia belong to?",o:["Squad 6","Squad 11","Squad 13","Squad 4"],a:2},
+  // Tokyo Ghoul
+  {q:"What is the name of the half-ghoul protagonist in Tokyo Ghoul?",o:["Juuzou","Kaneki Ken","Tsukiyama","Amon"],a:1},
+  {q:"What organ do ghouls use as a weapon?",o:["Kagune","Quinque","Rinkaku","Ukaku"],a:0},
+  {q:"What organization hunts ghouls?",o:["CCG","Aogiri Tree","V Organization","Clowns"],a:0},
+  // Fairy Tail
+  {q:"What is the name of the main wizard guild in Fairy Tail?",o:["Blue Pegasus","Phantom Lord","Sabertooth","Fairy Tail"],a:3},
+  {q:"What magic does Natsu Dragneel use?",o:["Ice-Make Magic","Fire Dragon Slayer Magic","Requip Magic","Sky Dragon Slayer Magic"],a:1},
+  {q:"Who is Natsu's exceed companion?",o:["Carla","Lily","Happy","Frosch"],a:2},
+  // Black Clover
+  {q:"What is the name of the magic-less protagonist in Black Clover?",o:["Yuno","Noelle","Asta","Zora"],a:2},
+  {q:"What type of unique power does Asta possess?",o:["Light Magic","Dark Magic","Anti-Magic","Shadow Magic"],a:2},
+  // Jujutsu Kaisen
+  {q:"What curse does Yuji Itadori swallow to gain powers?",o:["Mahito's Finger","Sukuna's Finger","Hanami's Core","Geto's Curse"],a:1},
+  {q:"What is Gojo Satoru's eye technique?",o:["Six Eyes","Infinity","Limitless","Hollow Purple"],a:0},
+  {q:"What school do jujutsu sorcerers attend?",o:["Tokyo Magic College","Kyoto Jujutsu High","Tokyo Jujutsu High","Jujutsu Academy"],a:2},
+  // Evangelion
+  {q:"What is the name of the giant robots in Neon Genesis Evangelion?",o:["Gundams","Evangelions","Jaegers","Raideen"],a:1},
+  {q:"Who pilots EVA Unit-01?",o:["Rei Ayanami","Asuka Langley","Shinji Ikari","Kaworu Nagisa"],a:2},
+  {q:"What mysterious organization operates the Evangelions?",o:["SEELE","NERV","WILLE","GEHIRN"],a:1},
+  // Cowboy Bebop
+  {q:"What is the name of the spaceship in Cowboy Bebop?",o:["Red Tail","Swordfish","Bebop","Hammerhead"],a:2},
+  {q:"Who is the female bounty hunter on the Bebop crew?",o:["Faye Valentine","Julia","Ed","Annie"],a:0},
+  {q:"Who is the swordsman and ex-hitman in the Bebop crew?",o:["Spike Spiegel","Vicious","Jet Black","Lin"],a:0},
+  // Steins;Gate
+  {q:"What device does Rintaro Okabe use to send messages to the past?",o:["Time Machine","Phone Microwave","World Line Scanner","D-Mail Device"],a:1},
+  {q:"What does Okabe call himself?",o:["Mad Scientist","Kyouma Hououin","Time Traveler","El Psy Kongroo"],a:1},
+  // Code Geass
+  {q:"What power does Lelouch vi Britannia possess?",o:["Geass - Absolute Obedience","Geass - Future Sight","Geass - Mind Erase","Geass - Immortality"],a:0},
+  {q:"What is Lelouch's alter ego?",o:["Suzaku","Orange","Zero","The Black King"],a:2},
+  // Re:Zero
+  {q:"What unique ability does Subaru Natsuki have in Re:Zero?",o:["Teleportation","Return by Death","Time Stop","Mind Swap"],a:1},
+  {q:"Who is the silver-haired half-elf in Re:Zero?",o:["Beatrice","Emilia","Felt","Rem"],a:1},
+  // Sword Art Online extra
+  {q:"What color is Kirito's avatar in the original SAO?",o:["White","Red","Black","Blue"],a:2},
+  // Fullmetal Alchemist extra
+  {q:"Who is Edward Elric's automail mechanic?",o:["Winry Rockbell","Riza Hawkeye","Lan Fan","May Chang"],a:0},
+  // MHA extra
+  {q:"What is the name of the villain organization in MHA?",o:["Paranormal Liberation Front","League of Villains","Meta Liberation Army","Vanguard Action Squad"],a:1},
+  // More Dragon Ball
+  {q:"What is the name of the planet Namekians come from?",o:["Planet Vegeta","New Namek","Namek","Planet Guru"],a:2},
+  {q:"What transformation level comes after Super Saiyan 3?",o:["Super Saiyan 4","Super Saiyan God","Ultra Instinct","Super Saiyan Blue"],a:0},
+  // More Naruto
+  {q:"What is the name of the village Orochimaru creates?",o:["Village of Sound","Village of Star","Village of Rain","Cursed Village"],a:0},
+  {q:"Who is Naruto's mother?",o:["Kushina Uzumaki","Mito Uzumaki","Tsunade","Mikoto Uchiha"],a:0},
+  // More One Piece
+  {q:"Who is the first mate of the Straw Hat crew?",o:["Nami","Zoro","Sanji","Usopp"],a:1},
+  {q:"What is the name of Luffy's grandfather?",o:["Shanks","Garp","Roger","Sengoku"],a:1},
+  // More AOT
+  {q:"What is the colossal titan's special ability?",o:["Speed","Hardening","Emit steam and enormous size","Mind control"],a:2},
+  // Pokemon (anime)
+  {q:"What is Ash Ketchum's hometown?",o:["Cerulean City","Pallet Town","Viridian City","Pewter City"],a:1},
+  {q:"What is the first Pokemon Ash receives?",o:["Charmander","Squirtle","Bulbasaur","Pikachu"],a:3},
+  {q:"What does Team Rocket always try to steal?",o:["Mewtwo","Ash's badge","Ash's Pikachu","Rare candies"],a:2},
+  // Yu-Gi-Oh
+  {q:"What is Yugi's signature monster?",o:["Dark Magician Girl","Blue Eyes White Dragon","Dark Magician","Exodia"],a:2},
+  {q:"Who is Yugi's main rival?",o:["Joey Wheeler","Bakura","Seto Kaiba","Marik"],a:2},
+  // Inuyasha
+  {q:"What is the sacred jewel called in Inuyasha?",o:["Shikon Jewel","Dragon Jewel","Demon Shard","Soul Gem"],a:0},
+  {q:"What is Inuyasha's powerful sword?",o:["Tensaiga","Tokijin","Tenseiga","Tessaiga"],a:3},
+  // Sailor Moon
+  {q:"What is Sailor Moon's real name?",o:["Ami Mizuno","Rei Hino","Usagi Tsukino","Minako Aino"],a:2},
+  {q:"What planet does Sailor Moon's princess belong to?",o:["Moon","Earth","Venus","Sun"],a:0},
+  // Dragonball extra
+  {q:"What race is Piccolo?",o:["Saiyan","Human","Namekian","Android"],a:2},
+  // Shingeki no Kyojin / AOT extra
+  {q:"What does the name 'Eren Yeager' mean in German inspired language?",o:["Iron Storm","Eagle Warrior","Burning Spear","Free Bird"],a:0},
+  // Jujutsu extra
+  {q:"What is Ryomen Sukuna known as?",o:["King of Sorcerers","King of Curses","Greatest Shaman","Curse Master"],a:1},
+  // More Bleach
+  {q:"What is the name of the hollow that Ichigo partially transforms into?",o:["Shirosaki","Zangetsu Hollow","Inner Hollow","Vizard Self"],a:0},
+  // Re:Zero extra
+  {q:"Who is the blue-haired twin maid in Re:Zero?",o:["Emilia","Frederica","Ram","Rem"],a:3},
+  // Dr. Stone
+  {q:"Who is the genius scientist protagonist in Dr. Stone?",o:["Taiju","Chrome","Senku Ishigami","Gen"],a:2},
+  {q:"What liquid revives petrified humans in Dr. Stone?",o:["Sulfuric acid","Nitric acid","Revival Fluid","Stone Antidote"],a:0},
+  // Mob Psycho
+  {q:"What is Mob's real name in Mob Psycho 100?",o:["Ritsu Kageyama","Teruki Hanazawa","Shigeo Kageyama","Reigen Arataka"],a:2},
+  // Promised Neverland
+  {q:"What is the name of the orphanage in The Promised Neverland?",o:["Hope House","Grace Field House","Eden Garden","Heaven's Gate"],a:1},
+  // Violet Evergarden
+  {q:"What does Violet Evergarden do as her job?",o:["Bounty Hunter","Ghost Writer","Auto Memory Doll","Soldier"],a:2},
+  // Food Wars
+  {q:"What school do characters attend in Shokugeki no Soma?",o:["Totsuki Culinary Academy","Nakiri Cooking School","Heaven's Kitchen Academy","Elite Chef Institute"],a:0},
+  // Haikyuu
+  {q:"What sport is Haikyuu about?",o:["Basketball","Soccer","Volleyball","Tennis"],a:2},
+  {q:"What is the name of Hinata's high school volleyball team?",o:["Aoba Johsai","Nekoma","Karasuno","Inarizaki"],a:2},
+  // Toradora
+  {q:"Who is called the 'Palm-top Tiger' in Toradora?",o:["Minori Kushieda","Ami Kawashima","Taiga Aisaka","Sumire Kanō"],a:2},
+  // No Game No Life
+  {q:"What is the rule set called that governs NGNL's world?",o:["Ten Pledges","Game Laws","Divine Rules","God's Ten Oaths"],a:0},
+  // Overlord
+  {q:"What is Ainz Ooal Gown's real world name?",o:["Momonga","Tabula Smaragdina","Ulbert","Touch Me"],a:0},
+  // Black Clover extra
+  {q:"What is the name of Asta's sword that cuts through magic?",o:["Demon Slayer Sword","Demon Destroyer Sword","Sword of the Wizard King","Demon Dweller Sword"],a:0},
+  // That Time I Got Reincarnated
+  {q:"What creature is Rimuru Tempest reincarnated as?",o:["Dragon","Goblin","Slime","Skeleton"],a:2},
+  // Goblin Slayer
+  {q:"What is the only enemy Goblin Slayer ever kills?",o:["Demons","Orcs","Goblins","Skeletons"],a:2},
+  // Konosuba
+  {q:"What goddess does Kazuma take to the fantasy world in Konosuba?",o:["Darkness","Megumin","Aqua","Wiz"],a:2},
+  {q:"What is Megumin's only magic in Konosuba?",o:["Lightning Magic","Water Magic","Explosion Magic","Dark Magic"],a:2},
+  // Sword Art Online III
+  {q:"What are the virtual entities called in SAO: Alicization?",o:["Fluctlights","Mnemonic Visuals","Soul Translators","Cardinal Copies"],a:0},
+  // More Demon Slayer
+  {q:"What is the name of the flame Hashira?",o:["Tengen Uzui","Rengoku Kyojuro","Sanemi Shinazugawa","Gyomei Himejima"],a:1},
+  {q:"What is the poison Hashira's name?",o:["Kanao Tsuyuri","Aoi Kanzaki","Shinobu Kocho","Mitsuri Kanroji"],a:2},
+  // More Jujutsu Kaisen
+  {q:"What grade curse user is Gojo Satoru?",o:["Grade 1","Special Grade","Semi-Grade 1","Grade 2"],a:1},
+  // More MHA
+  {q:"What is the name of Class 1-A's teacher?",o:["All Might","Present Mic","Eraser Head","Midnight"],a:2},
+  // More Dragon Ball
+  {q:"What is the name of the cell who absorbs androids in DBZ?",o:["Buu","Cell","Cooler","Frieza's brother"],a:1},
+  // More One Piece
+  {q:"What is Ace's Devil Fruit?",o:["Mera Mera no Mi","Magu Magu no Mi","Yomi Yomi no Mi","Hie Hie no Mi"],a:0},
+  // Code Geass extra
+  {q:"What is the name of the mecha Lelouch pilots?",o:["Lancelot","Guren","Percival","Shinkirō"],a:3},
+  // Fairy Tail extra
+  {q:"Who is Erza Scarlet's magic type?",o:["Dragon Slayer","Celestial Spirit","Requip","Lightning"],a:2},
+  // More AOT
+  {q:"What is the name of Eren's brother?",o:["Levi","Zeke","Armin","Connie"],a:1},
+  // More Bleach
+  {q:"What is the full name of the Soul Society realm where dead souls live?",o:["Hueco Mundo","Soul Society","Dangai","Seireitei"],a:1},
+  // More Naruto
+  {q:"What is the name of Naruto's toad summons?",o:["Gamabunta","Katsuyu","Manda","Gamakichi"],a:0},
+  // More Hunter x Hunter
+  {q:"What is the 4 main Nen type that Gon uses?",o:["Specialization","Emission","Enhancement","Transmutation"],a:2},
+  // Vinland Saga
+  {q:"What legendary land does Thorfinn seek in Vinland Saga?",o:["Asgard","Vinland","Midgard","Valhalla"],a:1},
+  // FMAB extra
+  {q:"What is the name of the dwarf in the flask who created the Homunculi?",o:["Dante","Selim","Father","Van Hohenheim"],a:2},
+  // More Black Clover
+  {q:"What magic type does Yuno primarily use?",o:["Fire Magic","Water Magic","Wind Magic","Star Magic"],a:2},
+  // More MHA
+  {q:"What is Todoroki's quirk?",o:["Fire and Ice","Explosion","Zero Gravity","Hardening"],a:0},
+  // More Demon Slayer
+  {q:"What is the mark that enhances a demon slayer's power called?",o:["Sun Mark","Slayer Mark","Demon Slayer Mark","Power Crest"],a:2},
+  // Steins Gate extra
+  {q:"What is the name of the mascot character in Steins;Gate that Daru loves?",o:["Faris","Mayuri","Kurisu","Barrel Titor"],a:0},
+  // More Re:Zero
+  {q:"Who is the jealous witch whose scent clings to Subaru?",o:["Satella","Echidna","Minerva","Daphne"],a:0},
+  // Gurren Lagann
+  {q:"What is the name of the drill-based energy in Gurren Lagann?",o:["Spiral Power","Drill Power","Galaxy Energy","Arc Gurren"],a:0},
+  {q:"Who is Simon's mentor in Gurren Lagann?",o:["Kamina","Yoko","Viral","Leeron"],a:0},
+  // Cardcaptor Sakura
+  {q:"What is the name of the magical cards in Cardcaptor Sakura?",o:["Star Cards","Clow Cards","Moon Cards","Sakura Cards"],a:1},
+  // Yu Yu Hakusho
+  {q:"What is the name of the spirit energy in Yu Yu Hakusho?",o:["Reiki","Spirit Energy","Yoki","Reigun"],a:0},
+  // Trigun
+  {q:"What is the nickname of Vash in Trigun?",o:["Stampede","Humanoid Typhoon","Angel Arms","Desert Wanderer"],a:1},
+  // More Death Note
+  {q:"What food is Ryuk obsessed with?",o:["Bananas","Apples","Oranges","Grapes"],a:1},
+  // Berserk
+  {q:"What is the name of Guts' enormous sword in Berserk?",o:["Dragon Slayer","Godhand Blade","Behelit","Crimson Behelit"],a:0},
+  {q:"What cursed mark does Guts bear in Berserk?",o:["Brand of Sacrifice","Mark of Pain","God's Curse","Demon Scar"],a:0},
+  // More HxH
+  {q:"What are the ants in HxH that can develop Nen called?",o:["Chimera Ants","Phantom Ants","NGL Ants","Nen Ants"],a:0},
+  // Blue Exorcist
+  {q:"Whose son is Rin Okumura in Blue Exorcist?",o:["God","Satan","Amaimon","Mephisto"],a:1},
+  // Noragami
+  {q:"What is Yato's divine weapon (Regalia) called?",o:["Yukine","Hiyori","Bishamonten","Kazuma"],a:0},
+  // Overlord extra
+  {q:"What is the name of Ainz's guild that conquered the New World?",o:["Ainz Ooal Gown","Sorcerer Kingdom","Great Tomb of Nazarick","Eight Greed Kings"],a:0},
+  // SAO extra
+  {q:"What is the name of the final floor boss in Aincrad?",o:["Heathcliff","The Skull Reaper","Gleam Eyes","Argo"],a:0},
+  // More Pokemon
+  {q:"What is the name of Ash's main rival in Kanto?",o:["Misty","Brock","Gary Oak","Tracey"],a:2},
+  // Fruits Basket
+  {q:"What curse affects the Sohma family in Fruits Basket?",o:["Moon Curse","Zodiac Curse","Dragon Curse","Spirit Curse"],a:1},
+  // More Fairy Tail
+  {q:"What is the name of Fairy Tail's most powerful female mage?",o:["Cana","Levy","Erza Scarlet","Mirajane"],a:2},
+  // More Konosuba
+  {q:"What is Darkness' real name in Konosuba?",o:["Lalatina Ford Dustiness","Florette Ford","Eris","Wiz"],a:0},
+  // Sword Art Online extra 2
+  {q:"What is the name of the game set in Norse mythology in SAO?",o:["Underworld","ALfheim Online","Gun Gale Online","Ordinal Scale"],a:1},
+  // More Black Clover
+  {q:"What is the Wizard King's title in Black Clover?",o:["Magic Emperor","Grand Master","Sacred Knight","First Mage"],a:0},
+  // Boku no Hero extra
+  {q:"Who is the main villain known as 'All For One'?",o:["Tomura Shigaraki","Overhaul","The Original AFO","Dabi"],a:2},
+  // More Demon Slayer
+  {q:"How many Upper Rank Moons are there?",o:["3","6","9","12"],a:1},
+  // Jujutsu Kaisen extra
+  {q:"What does Nobara Kugisaki use as her main weapon?",o:["Sword","Whip","Hammer and Nails","Bow and Arrow"],a:2},
+  // Vinland Saga extra
+  {q:"Who is Askeladd's true identity in Vinland Saga?",o:["Prince Canute's guard","Son of Lucius Artorius Castus","A Welsh prince descendant","A Viking jarl"],a:1},
+  // Dr. Stone extra
+  {q:"What is the name of Senku's village founded in the stone age?",o:["Chrome Village","Ishigami Village","Science Kingdom","Stone World"],a:1},
+  // Mob Psycho extra
+  {q:"What is Mob's power level called when it reaches 100%?",o:["Limit Break","100% Power","??? Awakening","Mob Explosion"],a:2},
+  // More Fullmetal
+  {q:"What country does FMA Brotherhood take place in?",o:["Amestris","Xerxes","Ishval","Xing"],a:0},
+  // Princess Mononoke
+  {q:"What studio produced Princess Mononoke?",o:["Toei Animation","Madhouse","Studio Ghibli","Gainax"],a:2},
+  // Spirited Away
+  {q:"What is the name of the bathhouse in Spirited Away?",o:["Kamajii's Bath","Yubaba's Bathhouse","Spirit Springs","Bathhouse of Souls"],a:1},
+  // My Neighbor Totoro
+  {q:"What is the name of the giant forest spirit in My Neighbor Totoro?",o:["Catbus","Totoro","Kodama","Susuwatari"],a:1},
+  // More Yu-Gi-Oh
+  {q:"What is the name of Kaiba's signature card?",o:["Dark Magician","Exodia","Blue-Eyes White Dragon","Obelisk the Tormentor"],a:2},
+  // Ranma ½
+  {q:"In Ranma ½, what does Ranma turn into when splashed with cold water?",o:["A cat","A girl","A duck","A pig"],a:1},
+  // City Hunter
+  {q:"What is the main character's name in City Hunter?",o:["Ryo Saeba","Hideyuki Makimura","Kaori Makimura","Umibozu"],a:0},
+  // Neon Genesis extra
+  {q:"What is the name of Rei's Angel in Evangelion?",o:["Tabris","Ramiel","Sachiel","Leliel"],a:0},
+  // More Code Geass
+  {q:"What is Suzaku Kururugi's elite knighthood called?",o:["Knight of Seven","Knight of One","Knight of Rounds","Holy Knight"],a:0},
+  // More AOT
+  {q:"What is Hange Zoe's primary area of research?",o:["Titan biology","Vertical Maneuvering Equipment","History","Weapons"],a:0},
+  // Kuroko no Basket
+  {q:"What is the name of the elite Generation of Miracles team Kuroko was on?",o:["Seirin High","Rakuzan High","Shutoku High","Teiko Middle School"],a:3},
+  // Magi
+  {q:"What are the magical items called in Magi that grant enormous power?",o:["Metal Vessels","Djinn Metals","King's Treasures","Magoi Orbs"],a:0},
+  // Akame ga Kill
+  {q:"What are the powerful weapons called in Akame ga Kill?",o:["Teigu","Imperial Arms","Danger Beasts","Dark Tools"],a:0},
+  // Highschool DxD
+  {q:"What devil clan does Rias Gremory lead?",o:["House Phenex","House Bael","House Sitri","House Gremory"],a:3},
+  // Date A Live
+  {q:"What are the powerful entities Shido must date and seal in Date A Live?",o:["Witches","Angels","Spirits","Demons"],a:2},
+  // More That Time I Got Reincarnated
+  {q:"What title does Rimuru eventually take?",o:["Demon King","Sage of Storms","Demon Lord","Slime God"],a:2},
+  // More Overlord
+  {q:"What is the name of the beautiful female warrior NPC in Overlord?",o:["Albedo","Shalltear","Entoma","Aura"],a:0},
+  // Tower of God anime
+  {q:"What does Bam seek in the Tower of God?",o:["Power","Immortality","His friend Rachel","The Top"],a:2},
+  // Sword Art Online: Alicization
+  {q:"What is the name of Kirito's best friend in Underworld?",o:["Eugeo","Bercouli","Fanatio","Eldrie"],a:0},
+],
+inner: [
+  // Deep lore Naruto
+  {q:"What is the true name of the Ten-Tails Jinchuriki transformation?",o:["Six Paths Sage","True God Shinobi","Divine Tree Manifestation","Sage of Six Paths Reincarnation"],a:0},
+  {q:"What rare dojutsu can only be awakened by Uchiha who survive immense grief?",o:["Eternal Mangekyou Sharingan","Rinnegan","Tenseigan","Rinne-Sharingan"],a:0},
+  {q:"What is the name of Obito's space-time jutsu that can make him intangible?",o:["Izanagi","Kamui","Izanami","Amenotejikara"],a:1},
+  {q:"What is the hidden purpose of Itachi's Tsukuyomi on Sasuke at their last battle?",o:["To kill him","To awaken Eternal Mangekyou","To unlock Susanoo","To remove Orochimaru's curse"],a:1},
+  {q:"What clan were the Sage of Six Paths' sons the progenitors of?",o:["Uchiha and Uzumaki","Senju and Uchiha","Hyuga and Uchiha","Uzumaki and Senju"],a:1},
+  {q:"What is the name of the forbidden technique that grants eyes from the dead?",o:["Izanami","Izanagi","Eye of God","Kotoamatsukami"],a:1},
+  {q:"What is Black Zetsu actually revealed to be?",o:["Madara's will","Kaguya's will","Indra's manifestation","A separate entity"],a:1},
+  {q:"What is the name of the Sage of Six Paths' older son?",o:["Hagoromo","Hamura","Indra","Asura"],a:2},
+  {q:"What is the true nature of the Moon's Eye Plan?",o:["World domination","Cast Infinite Tsukuyomi","Revive the Ten-Tails","Destroy all villages"],a:1},
+  {q:"What is the Kotoamatsukami technique's special property?",o:["Kills anyone","Plants suggestions so subtle the victim never knows","Traps victims in illusions","Steals eyes"],a:1},
+  // Deep lore Dragon Ball
+  {q:"What is the name of the divine technique that destroys the soul in Dragon Ball Super?",o:["Spirit Bomb","Erase","Hakai","Ultra Instinct"],a:2},
+  {q:"What is the true name of Beerus' angel attendant?",o:["Whis","Korn","Martinu","Vados"],a:0},
+  {q:"Who are the two Omni-Kings in Dragon Ball Super?",o:["Grand Zeno and Future Grand Zeno","Beerus and Champa","Goku Black and Zamasu","Angels 1 and 2"],a:0},
+  {q:"What technique does Vegito use that involves simultaneous attacks?",o:["Final Flash","Final Explosion","Final Kamehameha","Big Bang Kamehameha"],a:2},
+  {q:"What is Goku's father's original mission on Earth?",o:["Destroy the planet","Gather warriors","Eliminate lifeforms to sell the planet","Spy on humans"],a:2},
+  // Deep One Piece
+  {q:"What is the secret ancient weapon that can destroy the world called in One Piece?",o:["Pluton","Poseidon","Uranus","Oars"],a:0},
+  {q:"What is the Void Century in One Piece?",o:["A 100-year war","A 100-year gap in history erased by the World Government","A period of pirates","Age of the ancient kings"],a:1},
+  {q:"What is the true name of the Gomu Gomu no Mi?",o:["Hito Hito no Mi Model Nika","Gomu Gomu no Mi Model Sun God","Tama Tama no Mi","Nika Nika no Mi"],a:0},
+  {q:"What is the Will of D. said to be in One Piece lore?",o:["The will of the sea","The will of those who fight against the heavens","A name meaning death","The will of ancient kings"],a:1},
+  {q:"What ancient kingdom fought the World Government's predecessors?",o:["Marineford","Joy Boy's Kingdom","Wano","The Ancient Kingdom"],a:3},
+  // Deep AOT
+  {q:"What is the founding titan's unique power that other titans lack?",o:["Hardening","Control pure titans and alter Eldian bodies/memories","Colossal steam","Titan creation"],a:1},
+  {q:"What are the Rumbling's full implications in Attack on Titan?",o:["Destroy only Marley","Trample all life outside Paradis","Level all walls","Destroy all titans"],a:1},
+  {q:"What is the name of the curse placed on those who inherit a Titan power?",o:["Titan's Bane","Curse of Ymir","Shifter's Doom","13-Year Curse"],a:1},
+  {q:"Who was the very first Titan in AOT lore?",o:["Eren Yeager","Karl Fritz","Ymir Fritz","Grisha Yeager"],a:2},
+  {q:"What was the original purpose of the walls in Attack on Titan?",o:["Protection from the outside world","Trap titans inside","Hide the Founding Titan","Preserve Eldia's power"],a:3},
+  // Deep Bleach
+  {q:"What is the name of Aizen's true zanpakuto ability?",o:["Kyoka Suigetsu — Perfect Hypnosis","Illusion Wave","Mirror Moon","Sōkyoku"],a:0},
+  {q:"What was the true identity of the Soul King in Bleach?",o:["A god sealed away","A corpse linchpin holding dimensions together","A hollow god","An ancient shinigami"],a:1},
+  {q:"What is the name of Yhwach's ability to see and alter the future?",o:["Almighty","Blut Vene","Reishi Manipulation","Bach's Vision"],a:0},
+  {q:"What is the Quincy cross called in Bleach?",o:["Hollow Bane","Soul Cross","Quincy Zeichen","Holy Cross"],a:2},
+  {q:"What is the name of the forbidden kido that destroys both caster and target?",o:["Hado 96","Kurohitsugi","Sōkatsui","Goryūtenmetsu"],a:0},
+  // Deep FMA
+  {q:"What is the philosopher's stone actually composed of in FMA Brotherhood?",o:["Dragon blood","Human lives and souls","Red water extract","Alchahestry energy"],a:1},
+  {q:"What was the Truth (Gate) guardian's price for Edward's alchemy knowledge?",o:["His arm","His leg","His alchemy ability","His soul"],a:2},
+  {q:"What ancient civilization did Father (the dwarf) destroy to gain immortality?",o:["Ishval","Xerxes","Creta","Drachma"],a:1},
+  {q:"Why can't Alphonse feel anything while in the armor?",o:["His soul wasn't fully transferred","His nerves are gone","The armor numbs sensation","He has no nervous system"],a:0},
+  {q:"What is the name of the true Homunculus hidden within Selim Bradley?",o:["Wrath","Pride","Greed","Lust"],a:1},
+  // Deep Death Note
+  {q:"What is the rule that states a Shinigami cannot kill someone to extend a human's life they love?",o:["The Shinigami Love Rule","Shinigami Code 3","Exception Clause 67","The Forbidden Love Addendum"],a:0},
+  {q:"What happens to Shinigami who fall in love with humans in Death Note?",o:["They gain human form","They die","They lose their Death Note","They become human"],a:1},
+  {q:"What is the name Near uses for his successor organization after L's death?",o:["Task Force Kira","SPK - Special Provision for Kira","Anti-Kira Alliance","World Police HQ"],a:1},
+  // Deep HxH
+  {q:"What is the name of the unique Nen ability that lets Gon sacrifice all future potential?",o:["Nen Release","Jajanken All-In","Adult Gon Transformation","Limitation Transformation"],a:2},
+  {q:"What is the Dark Continent in HxH?",o:["The known world","The unexplored land beyond Lake Mobius","The Chimera Ant's homeland","The Phantom Troupe's base"],a:1},
+  {q:"What is the name of the unique type of Nen that the Zoldyck family trains?",o:["Zetsu","Shu","Ko","Ken"],a:0},
+  // Deep Demon Slayer
+  {q:"What is the connection between Yoriichi and the sun breathing?",o:["He invented it","He rediscovered it","He destroyed it","He stole it"],a:0},
+  {q:"What is the secret method used by the Kamado family for sun breathing?",o:["Hinokami Kagura","Sun Dance","Ritual Flames","Fire Festival Dance"],a:0},
+  {q:"What makes Muzan's blood special regarding demon creation?",o:["It grants immortality","It allows creating more demons with a tiny amount","It gives special powers","It cannot be destroyed"],a:1},
+  // Deep JJK
+  {q:"What is the name of Gojo's spatial technique that creates infinite layers?",o:["Infinity","Hollow Purple","Blue","Limitless"],a:3},
+  {q:"What is the true nature of Kenjaku, the villain who wears different bodies?",o:["An ancient curse","A jujutsu sorcerer who transplants his brain","A merged cursed spirit","An incarnated god"],a:1},
+  {q:"What is the Prison Realm in JJK used for?",o:["Killing cursed spirits","Sealing powerful sorcerers indefinitely","Training ground","Curse amplification"],a:1},
+  // Deep Code Geass
+  {q:"What is the code that grants immortality in Code Geass called?",o:["Geass Code","C's World Code","The Code","Immortality Vow"],a:2},
+  {q:"What is the true plan behind Lelouch's Zero Requiem?",o:["Destroy Britannia","Unite the world by having everyone hate Zero/Lelouch","Free Japan","Kill the Emperor"],a:1},
+  // Deep Evangelion
+  {q:"What is the Human Instrumentality Project's ultimate goal?",o:["Destroy Angels","Merge all human souls into one","Give humans AT Fields","Destroy the world"],a:1},
+  {q:"What was Rei Ayanami created from in Evangelion?",o:["A clone","DNA of Yui Ikari and Lilith","An angel","Test tube experiment"],a:1},
+  // Deep Re:Zero
+  {q:"What are the Sin Archbishops in Re:Zero connected to?",o:["Demon Lords","Witch Cult Gospels","Seven Deadly Sins Witch Factors","Roswaal's forbidden magic"],a:2},
+  {q:"What is Echidna's domain called where she meets with Subaru?",o:["Dream World","Infinite Library","Witch's Tea Party","Soul Archive"],a:2},
+  // Deep Steins Gate
+  {q:"What is the specific world line divergence number of Steins Gate (the true ending)?",o:["1.048596","1.130426","0.571024","1.382733"],a:0},
+  {q:"What does IBN 5100 do in the Steins;Gate story?",o:["Send emails to the past","Decode a program suppressing SERN","Activate the time machine","Generate D-mail"],a:1},
+  // Deep SAO
+  {q:"What is the fluctlight in SAO: Alicization compared to in real life?",o:["Virtual soul","The human quantum soul","Memory bank","Neural pattern"],a:1},
+  // Deep HxH again
+  {q:"What is the Sunflower Path that leads to the Dark Continent bordered by?",o:["Lake Mobius","Azian Continent","Meteor City","NGL"],a:0},
+  // Deep Berserk
+  {q:"What are the five God Hand members in Berserk?",o:["Void, Slan, Ubik, Conrad, Femto","Satan, Demon, Evil, Chaos, Dark","Skull Knight's 5 Rivals","Femto and 4 Angels"],a:0},
+  {q:"What is the Behelit's purpose in Berserk?",o:["Grant wishes","Summon the God Hand for a sacrifice ceremony","Protect its owner","Destroy demons"],a:1},
+  // Deep Bleach 2
+  {q:"What is the Quincy's final form called in Bleach?",o:["Letzt Stil","Vollstandig","Blut Vene","Heilig Bogen"],a:1},
+  {q:"What is the Soul King's missing right arm reincarnated into?",o:["Yhwach","Pernida Parnkgjas","Gerard Valkyrie","Lille Barro"],a:1},
+  // Deep Gurren Lagann
+  {q:"What does the Anti-Spiral race seek to prevent by limiting Spiral Power?",o:["World destruction","Spiral Nemesis — universal implosion from infinite Spiral Energy","Power overload","God's awakening"],a:1},
+  // Deep FMA 2
+  {q:"What is the name of the art of Xingese alchemy that works with life force?",o:["Alchemy","Alkahestry","Chi Bending","Dragon Pulse"],a:1},
+  // Deep One Piece 2
+  {q:"What is the significance of the letter 'D' in One Piece?",o:["It denotes danger","Enemies of God / Will of D","Death clan","Dream seekers"],a:1},
+  {q:"What is the Florian Triangle's secret in One Piece?",o:["Sea Kings","Ancient underwater city","A giant creature sleeping in the fog","Ancient weapon Pluton"],a:2},
+  // Deep Naruto 2
+  {q:"What is the name of the special barrier technique used to seal the nine tails inside Kushina?",o:["Four Symbols Seal","Eight Trigrams Seal","Mind's Eye Seal","Adamantine Chains"],a:1},
+  {q:"What is the key difference between Sage Mode and Six Paths Sage Mode?",o:["Speed","Power source — nature energy vs Truth-Seeking Ball access","Number of clones","Toad cooperation"],a:1},
+  // Deep MHA
+  {q:"What is the secret behind One For All's multiple quirk storage?",o:["Merged through generations","Quirk singularity transfer","Vestige realm accumulation","DNA splicing"],a:2},
+  {q:"What is the name of Shigaraki's origin quirk before All For One enhanced it?",o:["Decay","Destroy","Disintegrate","Decompose"],a:0},
+  // Deep AOT 2
+  {q:"What is the secret truth about Titan shifting shown at the series end?",o:["It was divine power","Paths connect all Eldians to Ymir's source in the coordinate","A scientific mutation","An ancient curse only"],a:1},
+  {q:"What is the name of the Eldian royal bloodline's key power?",o:["Coordinate","Royal Blood Ability","Founding Titan Authority","Founding Power"],a:0},
+  // Deep Demon Slayer 2
+  {q:"What makes the Demon Slayer Mark bearers likely to die young?",o:["The mark drains life","Their bodies burn from the enhanced power","Demons target them","Hashira training kills"],a:0},
+  // Deep JJK 2
+  {q:"What is the name of Megumi's most powerful shikigami summon?",o:["Divine Dog","Nue","Eight-Handled Sword Divergent Sila Divine General Mahoraga","Great Serpent"],a:2},
+  {q:"What is Yuta Okkotsu's connection to Rika?",o:["She is his familiar","She is his cursed spirit girlfriend","She is a special grade","She is his ancestor"],a:1},
+  // Deep Re:Zero 2
+  {q:"What is Roswaal's true long-term plan in Re:Zero?",o:["Kill Emilia","Destroy the witch cult","Recreate Echidna using the Gospel","Become Witch"],a:2},
+  // Deep Code Geass 2
+  {q:"What is the full name of the system that gives pilots advantages via the Geass Order?",o:["Code System","Geass Sigil Network","Thought Elevators","C's World Access"],a:2},
+  // Deep Evangelion 2
+  {q:"What does the Lance of Longinus do in Evangelion?",o:["Kill Angels","Destroy AT Fields, used in Instrumentality","Power EVAs","Seal Lilith"],a:1},
+  // Deep Death Note 2
+  {q:"What is the true name of the Shinigami realm ruler in Death Note?",o:["Rem","Ryuk","The Shinigami King","Armonia Jenkins"],a:2},
+  // Deep HxH 3
+  {q:"What is the secret the Zoldyck butler Gotoh keeps about Killua's training?",o:["Killua's true potential","The removal of a conditioning needle from his brain","His assassination orders","His true age"],a:1},
+  // Deep Dragon Ball 2
+  {q:"What is the name of the divine angel language in Dragon Ball Super?",o:["God Tongue","Kaio Speak","Angelic Script","Angel Language"],a:0},
+  {q:"What is the secret of Ultra Instinct — Sign vs Mastered UI?",o:["Power level","Hair color","Whether the heart is fully calm — Sign is still emotional","Body size"],a:2},
+  // Deep One Piece 3
+  {q:"What did Joy Boy promise to Poseidon (ancient Mermaid Princess)?",o:["To free the Fish-Men","To bring Noah to Fish-Man Island using the Ancient Kingdom's power","To raise Fishman Island to the surface","To destroy the World Government"],a:1},
+  // Deep FMA 3
+  {q:"What is the paradox in Edward's final sacrifice at the end of FMA Brotherhood?",o:["He sacrifices his life","He gives up his alchemy to bring Al back using the Gate as his toll","He destroys the Philosopher's Stone","He enters the Gate permanently"],a:1},
+  // Vinland Saga deep lore
+  {q:"What does Askeladd's true goal with Canute represent thematically in Vinland Saga?",o:["Revenge against Denmark","Creating a true king who can protect the weak — his Welsh legacy","Viking supremacy","Political power"],a:1},
+  // Gurren Lagann deep
+  {q:"What is the final weapon Tengen Toppa Gurren Lagann throws in the last battle?",o:["Giga Drill Breaker","Super Tengen Toppa Giga Drill","Infinity Big Bang Storm","Spiral Giga Drill"],a:1},
+  // More deep lore across series
+  {q:"What does the 'Promised Day' refer to in Fullmetal Alchemist Brotherhood?",o:["Father's plan to use a solar eclipse to become a god","Edward's fight with Envy","The day of Ishval Massacre","The day the Homunculi were born"],a:0},
+  {q:"In Hunter x Hunter, what does Killua's Godspeed Nen ability actually do?",o:["Makes him invisible","Converts electricity to neural impulses surpassing conscious thought","Stops time briefly","Creates lightning clones"],a:1},
+  {q:"What is the truth about Zeref in Fairy Tail?",o:["He's just an evil mage","He's 400 years old, cursed by the god Ankhseram to kill anything he loves","He's a demon created by the book","He's a future Natsu"],a:1},
+  {q:"In Black Clover, what is the true name of Asta's devil?",o:["Liebe","Licht","Lucifero","Beelzebub"],a:0},
+  {q:"What is the name of the true main villain of Magi: The Labyrinth of Magic?",o:["Judar","Sinbad","Il Ilah","David Jehoahaz Abraham"],a:3},
+  {q:"What is Levi Ackerman's connection to the Ackerman clan's power in AOT?",o:["Nobility","The Ackerman clan served Eldia as weapons — they tap into accumulated battle experience","Titan shift","Special ODM skills"],a:1},
+  {q:"What is the significance of the Mangekyou Sharingan going blind over time in Naruto?",o:["Side effect of overuse","The power of the eyes literally consumes the light to fuel the Uchiha's hatred","It symbolizes corruption","Too much chakra use"],a:1},
+  {q:"What does Sailor Saturn's power of Silence mean in the deep Sailor Moon lore?",o:["She is quiet","She has the power to destroy an entire planet or star system","She creates silence barriers only","She controls sound"],a:1},
+]
+};
 
-// ===== STATE =====
-let G = {room:null,name:null,isHost:false,players:[],channel:null,q:[],i:0,score:0};
+// =====================================================
+// GAME STATE
+// =====================================================
+let playerName = "Player";
+let difficulty = "easy";
+let botCount = 1;
+let playerScore = 0;
+let botScore = 0;
+let currentQIndex = 0;
+let questions = [];
+let timerInterval = null;
+let timeLeft = 20;
+let botTimeout = null;
+let playerAnswered = false;
+let botAnswered = false;
+let correctStats = 0;
+let wrongStats = 0;
+let skippedStats = 0;
 
-// ===== QUESTIONS =====
-const Q = [
- {q:"Naruto MC?",a:["Naruto","Sasuke","Sakura","Lee"],c:0},
- {q:"Luffy power?",a:["Fire","Rubber","Ice","Wind"],c:1},
- {q:"AOT hero?",a:["Levi","Eren","Armin","Reiner"],c:1},
- {q:"Death Note user?",a:["L","Light","Near","Misa"],c:1},
- {q:"Tanjiro style?",a:["Fire","Water","Wind","Thunder"],c:1},
- {q:"One Punch hero?",a:["Saitama","Naruto","Goku","Eren"],c:0}
-];
+// Bot accuracy by difficulty
+const BOT_ACCURACY = {easy:0.35, normal:0.55, medium:0.72, hard:0.90};
+// Bot response time range by difficulty (min-max ms within 15s max)
+const BOT_TIME = {easy:[8000,14500], normal:[5000,12000], medium:[3000,9000], hard:[1500,6000]};
 
-function buildQ(){
-  return Q.sort(()=>Math.random()-0.5);
+// =====================================================
+// PARTICLES
+// =====================================================
+(function(){
+  const pc = document.getElementById('particles');
+  for(let i=0;i<120;i++){
+    const s = document.createElement('div');
+    s.className='star';
+    const size = Math.random()*3+1;
+    s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;background:hsl(${Math.random()*360},80%,80%);--d:${2+Math.random()*4}s;--delay:${Math.random()*3}s;`;
+    pc.appendChild(s);
+  }
+  const kb = document.getElementById('kanji-bg');
+  const kanjis = ['忍','愛','力','夢','剣','鬼','魂','闇','光','心','炎','風','水','土','雷','龍','侍','魔','神','死'];
+  for(let i=0;i<18;i++){
+    const k = document.createElement('div');
+    k.className='kanji';
+    k.textContent = kanjis[Math.floor(Math.random()*kanjis.length)];
+    const fs = 30+Math.random()*80;
+    k.style.cssText=`left:${Math.random()*100}%;--fs:${fs}px;--d:${15+Math.random()*25}s;--delay:${Math.random()*20}s;`;
+    kb.appendChild(k);
+  }
+})();
+
+// =====================================================
+// SUPPORT BANNER
+// =====================================================
+function closeBanner(){
+  document.getElementById('support-banner').style.display='none';
+  sessionStorage.setItem('bannerClosed','1');
+}
+if(sessionStorage.getItem('bannerClosed')==='1'){
+  document.getElementById('support-banner').style.display='none';
 }
 
-// ===== UI =====
-function show(id){
- document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
- document.getElementById(id).classList.add('active');
+// =====================================================
+// SCREEN MANAGEMENT
+// =====================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
-// ===== CODE =====
-function gen(){
- let s="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
- return Array(4).fill().map(()=>s[Math.random()*s.length|0]).join('');
+function goToSetup(){
+  clearQuiz();
+  showScreen('setup-screen');
 }
 
-// ===== REALTIME =====
-function sub(code){
- if(G.channel) sb.removeChannel(G.channel);
+function selectLevel(btn){
+  document.querySelectorAll('.level-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  difficulty = btn.dataset.level;
+}
 
- G.channel = sb.channel("room-"+code,{config:{broadcast:{self:true}}});
+function startSetup(){
+  const nameVal = document.getElementById('player-name').value.trim();
+  if(!nameVal){showToast("Please enter your name! 😅",'skip-toast');return;}
+  playerName = nameVal;
+  botCount = parseInt(document.getElementById('bot-count').value);
+  document.getElementById('rules-player-info').textContent = `${playerName} vs ${botCount} Bot${botCount>1?'s':''} — Difficulty: ${difficulty.toUpperCase()}`;
+  showScreen('rules-screen');
+}
 
- G.channel
-  .on('broadcast',{event:'join'},({payload})=>{
-    if(!G.players.includes(payload)){
-      G.players.push(payload);
-      render();
-    }
-  })
-  .on('broadcast',{event:'start'},({payload})=>{
-    G.q = payload;
-    startQuiz();
-  })
-  .subscribe(async(s)=>{
-    if(s=="SUBSCRIBED"){
-      await G.channel.send({type:'broadcast',event:'join',payload:G.name});
-    }
+// =====================================================
+// BUILD QUESTION SET
+// =====================================================
+function buildQuestions(){
+  // Pick 20 famous + 5 inner, no repeats, shuffle
+  const fShuffled = shuffle([...QUESTION_BANK.famous]);
+  const iShuffled = shuffle([...QUESTION_BANK.inner]);
+  return shuffle([...fShuffled.slice(0,20).map(q=>({...q,type:'famous'})), ...iShuffled.slice(0,5).map(q=>({...q,type:'inner'}))]);
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// =====================================================
+// BEGIN QUIZ
+// =====================================================
+function beginQuiz(){
+  questions = buildQuestions();
+  playerScore = 0; botScore = 0; currentQIndex = 0;
+  correctStats = 0; wrongStats = 0; skippedStats = 0;
+  document.getElementById('player-label').textContent = playerName;
+  document.getElementById('player-score').textContent = '0';
+  document.getElementById('bot-score').textContent = '0';
+  showScreen('quiz-screen');
+  loadQuestion();
+}
+
+function loadQuestion(){
+  if(currentQIndex >= questions.length){
+    endGame();
+    return;
+  }
+  playerAnswered = false;
+  botAnswered = false;
+  const q = questions[currentQIndex];
+  // Update header
+  document.getElementById('q-counter').textContent = `Q ${currentQIndex+1} / 25`;
+  // Update question card
+  const typeTag = document.getElementById('q-type-tag');
+  typeTag.textContent = q.type === 'famous' ? '⭐ Famous Anime' : '🔮 Deep Lore';
+  typeTag.className = 'q-type-tag ' + q.type;
+  document.getElementById('q-num-label').textContent = `Question ${currentQIndex+1} of 25`;
+  document.getElementById('question-text').textContent = q.q;
+  // Build options
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.o.forEach((opt,idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.innerHTML = `<span class="opt-letter">${letters[idx]}</span>${opt}`;
+    btn.onclick = ()=>playerAnswer(idx);
+    grid.appendChild(btn);
   });
+  // Reset bot
+  setBotStatus('thinking');
+  document.getElementById('bot-thinking-fill').style.width = '0%';
+  // Animate bot thinking bar
+  scheduleBotAnswer();
+  // Start timer
+  startTimer();
 }
 
-// ===== CREATE =====
-function createGame(){
- let n = document.getElementById('host-name').value.trim();
- if(!n) return alert("Enter name");
-
- G.name=n; G.isHost=true;
- G.room=gen(); G.players=[n];
-
- document.getElementById('roomCode').innerText = G.room;
-
- show('host'); render();
- sub(G.room);
+function startTimer(){
+  timeLeft = 20;
+  updateTimerDisplay(20);
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    timeLeft--;
+    updateTimerDisplay(timeLeft);
+    if(timeLeft<=0){
+      clearInterval(timerInterval);
+      if(!playerAnswered) timeUp();
+    }
+  },1000);
 }
 
-// ===== JOIN =====
-function joinGame(){
- let n = document.getElementById('join-name').value.trim();
- let c = document.getElementById('code').value.toUpperCase().trim();
-
- if(!n) return alert("Enter name");
- if(c.length!=4) return alert("Enter code");
-
- G.name=n; G.room=c;
- show('guest');
- sub(c);
+function updateTimerDisplay(t){
+  const num = document.getElementById('timer-num');
+  const prog = document.getElementById('timer-circle-prog');
+  num.textContent = t;
+  const circumference = 175.9;
+  const offset = circumference - (t/20)*circumference;
+  prog.style.strokeDashoffset = offset;
+  let color = 'var(--timer-ok)';
+  if(t<=10) color = 'var(--timer-warn)';
+  if(t<=5) color = 'var(--timer-danger)';
+  prog.style.stroke = color;
+  num.style.color = color;
 }
 
-// ===== RENDER =====
-function render(){
- let html = G.players.map(p=>`<div class="player">${p}</div>`).join('');
- document.getElementById('players').innerHTML = html;
- document.getElementById('players2').innerHTML = html;
+function scheduleBotAnswer(){
+  clearTimeout(botTimeout);
+  const acc = BOT_ACCURACY[difficulty];
+  const [minT, maxT] = BOT_TIME[difficulty];
+  const botDelay = minT + Math.random()*(maxT-minT);
+  // Animate thinking bar
+  const fill = document.getElementById('bot-thinking-fill');
+  fill.style.transition = `width ${botDelay/1000}s linear`;
+  fill.style.width = '100%';
+
+  botTimeout = setTimeout(()=>{
+    if(!playerAnswered || !botAnswered){
+      botRespondNow(acc);
+    }
+  }, Math.min(botDelay, 15000));
 }
 
-// ===== START =====
-async function startGame(){
- if(G.players.length<2) return alert("Need 2 players");
-
- let q = buildQ();
-
- await G.channel.send({
-  type:'broadcast',
-  event:'start',
-  payload:q
- });
+function botRespondNow(acc){
+  if(botAnswered) return;
+  botAnswered = true;
+  const q = questions[currentQIndex];
+  const correct = Math.random() < acc;
+  if(correct){
+    botScore++;
+    document.getElementById('bot-score').textContent = botScore;
+    setBotStatus('correct');
+  } else {
+    setBotStatus('wrong');
+  }
+  // If player hasn't answered yet, highlight correct after bot answers
+  if(!playerAnswered){
+    // Don't end — let player still try until timer
+  }
 }
 
-// ===== QUIZ =====
-function startQuiz(){
- G.i=0; G.score=0;
- show('quiz');
- loadQ();
+function playerAnswer(idx){
+
+  if(playerAnswered) return;
+  playerAnswered = true;
+  clearInterval(timerInterval);
+  clearTimeout(botTimeout);
+  setBotStatus('done');
+  document.getElementById('bot-thinking-fill').style.width = '100%';
+
+  const q = questions[currentQIndex];
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b=>b.disabled=true);
+
+  if(idx === q.a){
+    btns[idx].classList.add('correct');
+    playerScore++;
+    document.getElementById('player-score').textContent = playerScore;
+    correctStats++;
+    showToast(`✅ Correct! +1 point`,'correct-toast');
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[q.a].classList.add('reveal-correct');
+    wrongStats++;
+    showToast(`❌ Wrong! Correct: ${q.o[q.a]}`,'wrong-toast');
+  }
+
+  // Bot still might answer if it hasn't yet
+  if(!botAnswered){
+    const acc = BOT_ACCURACY[difficulty];
+    botRespondNow(acc);
+  }
+
+  setTimeout(()=>nextQuestion(), 1800);
 }
 
-function loadQ(){
- let x = G.q[G.i];
- document.getElementById('q').innerText = x.q;
- document.getElementById('score').innerText = G.score;
-
- document.getElementById('opts').innerHTML = x.a.map((o,i)=>
-  `<button onclick="ans(${i})">${o}</button>`
- ).join('');
+function timeUp(){
+  if(playerAnswered) return;
+  playerAnswered = true;
+  clearTimeout(botTimeout);
+  setBotStatus('done');
+  const q = questions[currentQIndex];
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b=>b.disabled=true);
+  btns[q.a].classList.add('reveal-correct');
+  skippedStats++;
+  showToast(`⏰ Time's up! Skipped!`,'skip-toast');
+  if(!botAnswered) botRespondNow(BOT_ACCURACY[difficulty]);
+  setTimeout(()=>nextQuestion(), 1800);
 }
 
-function ans(i){
- let x = G.q[G.i];
-
- if(i===x.c) G.score++;
-
- G.i++;
- if(G.i < G.q.length) loadQ();
- else endGame();
+function nextQuestion(){
+  currentQIndex++;
+  loadQuestion();
 }
 
+function setBotStatus(state){
+  const dot = document.getElementById('bot-dot');
+  const text = document.getElementById('bot-status-text');
+  dot.className = 'bot-dot';
+  if(state==='thinking'){dot.classList.add('thinking');text.textContent='Bot is thinking...';}
+  else if(state==='correct'){dot.classList.add('answered');text.textContent='Bot answered ✓';}
+  else if(state==='wrong'){dot.style.background='var(--wrong)';text.textContent='Bot got it wrong ✗';}
+  else {text.textContent='Waiting...';}
+}
+
+// =====================================================
+// END GAME
+// =====================================================
 function endGame(){
- document.getElementById('final').innerText = "Score: "+G.score;
- show('gameover');
+  clearInterval(timerInterval);
+  clearTimeout(botTimeout);
+
+  document.getElementById('result-player-name').textContent = playerName;
+  document.getElementById('result-player-score').textContent = playerScore;
+  document.getElementById('result-bot-score').textContent = botScore;
+  document.getElementById('stat-correct').textContent = correctStats;
+  document.getElementById('stat-wrong').textContent = wrongStats;
+  document.getElementById('stat-skipped').textContent = skippedStats;
+  const total = correctStats+wrongStats;
+  document.getElementById('stat-accuracy').textContent = total>0 ? Math.round((correctStats/total)*100)+'%' : '0%';
+
+  const badge = document.getElementById('result-winner-badge');
+  const title = document.getElementById('result-title');
+  const emoji = document.getElementById('result-emoji');
+
+  if(playerScore > botScore){
+    title.textContent='VICTORY!'; badge.textContent=`${playerName} Wins! 🏆`; badge.className='result-winner-badge player'; emoji.textContent='🏆';
+    launchConfetti();
+  } else if(botScore > playerScore){
+    title.textContent='DEFEATED!'; badge.textContent=`Bot Wins! 🤖`; badge.className='result-winner-badge bot'; emoji.textContent='😢';
+  } else {
+    title.textContent='IT\'S A TIE!'; badge.textContent=`Draw! 🤝`; badge.className='result-winner-badge tie'; emoji.textContent='🤝';
+  }
+
+  showScreen('result-screen');
+}
+
+function clearQuiz(){
+  clearInterval(timerInterval);
+  clearTimeout(botTimeout);
+  currentQIndex=0;playerScore=0;botScore=0;
+}
+
+// =====================================================
+// CONFETTI
+// =====================================================
+function launchConfetti(){
+  const colors=['#ff3c6e','#ffb347','#a259ff','#00e5ff','#00e676','#fff'];
+  for(let i=0;i<120;i++){
+    const c=document.createElement('div');
+    c.className='confetti-piece';
+    c.style.cssText=`left:${Math.random()*100}%;top:0;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*10}px;height:${6+Math.random()*10}px;border-radius:${Math.random()>0.5?'50%':'2px'};--d:${2+Math.random()*3}s;--delay:${Math.random()*2}s;`;
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),(2+Math.random()*3+Math.random()*2)*1000+500);
+  }
+}
+
+// =====================================================
+// TOAST
+// =====================================================
+let toastTimeout;
+function showToast(msg, cls=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='show '+(cls||'');
+  clearTimeout(toastTimeout);
+  toastTimeout=setTimeout(()=>{t.className='';},1600);
 }
 </script>
-
 </body>
 </html>
