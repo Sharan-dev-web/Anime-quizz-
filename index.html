@@ -1,203 +1,222 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Realtime Room</title>
-
+<title>Anime Quiz Multiplayer</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body {
-  font-family: Arial;
-  background: #111;
-  color: white;
-  text-align: center;
-}
-
+body { font-family: Arial; background:#111; color:white; text-align:center; }
 .screen { display:none; }
-.screen.active { display:block; }
-
-input { padding:10px; margin:5px; }
-
-.player-chip {
-  background:#222;
-  padding:10px;
-  margin:5px;
-  border-radius:10px;
-}
+.active { display:block; }
+button { padding:10px 20px; margin:10px; cursor:pointer; }
+.player { margin:5px; }
 </style>
 </head>
 
 <body>
 
-<div id="screen-home" class="screen active">
-  <h1>Create / Join</h1>
+<h1>Anime Quiz 🎮</h1>
 
-  <input id="host-name" placeholder="Your Name">
-  <br>
-  <button onclick="createGame()">Create</button>
-
-  <hr>
-
-  <input id="join-name" placeholder="Your Name"><br>
-
-  <input id="cc0" maxlength="1">
-  <input id="cc1" maxlength="1">
-  <input id="cc2" maxlength="1">
-  <input id="cc3" maxlength="1">
-  <br>
-
-  <button onclick="joinGame()">Join</button>
+<!-- HOME -->
+<div id="home" class="screen active">
+<button onclick="show('create')">Create</button>
+<button onclick="show('join')">Join</button>
 </div>
 
-<div id="screen-waiting-host" class="screen">
-  <h2>Code: <span id="display-code"></span></h2>
-  <h3>Players</h3>
-  <div id="host-players-list"></div>
+<!-- CREATE -->
+<div id="create" class="screen">
+<input id="host-name" placeholder="Name">
+<button onclick="createGame()">Create Room</button>
 </div>
 
-<div id="screen-waiting-guest" class="screen">
-  <h2>Joined</h2>
-  <div id="guest-players-list"></div>
+<!-- JOIN -->
+<div id="join" class="screen">
+<input id="join-name" placeholder="Name"><br>
+<input id="code" placeholder="Room Code">
+<button onclick="joinGame()">Join</button>
+</div>
+
+<!-- WAIT HOST -->
+<div id="host" class="screen">
+<h2>Code: <span id="roomCode"></span></h2>
+<div id="players"></div>
+<button onclick="startGame()">START GAME</button>
+</div>
+
+<!-- WAIT GUEST -->
+<div id="guest" class="screen">
+<h2>Waiting for host...</h2>
+<div id="players2"></div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+<h2 id="q"></h2>
+<div id="opts"></div>
 </div>
 
 <script>
 // ===== SUPABASE =====
-const SUPABASE_URL = 'https://sbmhioyxdjecyumarhek.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_j5hylMpKHP5aRRJbp03gAg_Rd_lPZn4';
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(
+'https://sbmhioyxdjecyumarhek.supabase.co',
+'sb_publishable_j5hylMpKHP5aRRJbp03gAg_Rd_lPZn4'
+);
 
 // ===== STATE =====
-let G = {
-  roomCode:null,
-  myName:null,
-  isHost:false,
-  players:[],
-  channel:null
-};
+let G = {room:null,name:null,isHost:false,players:[],channel:null,q:[],i:0};
+
+// ===== QUESTIONS =====
+const famous = [
+{q:"Naruto MC?",a:["Naruto","Sasuke","Sakura","Lee"],c:0},
+{q:"Luffy power?",a:["Fire","Rubber","Ice","Wind"],c:1},
+{q:"AOT hero?",a:["Levi","Eren","Armin","Reiner"],c:1},
+{q:"DBZ form?",a:["SSJ","SSJ2","Ultra Instinct","Kaioken"],c:2},
+{q:"Death Note user?",a:["L","Light","Near","Misa"],c:1},
+{q:"Tanjiro skill?",a:["Fire","Water","Wind","Thunder"],c:1},
+{q:"One Piece crew?",a:["Red","Straw","Black","Heart"],c:1},
+{q:"Bleach sword?",a:["Zangetsu","Enma","Yoru","Blade"],c:0},
+{q:"Tokyo Ghoul MC?",a:["Kaneki","Touka","Amon","Hide"],c:0},
+{q:"Haikyuu sport?",a:["Football","Cricket","Volley","Tennis"],c:2},
+{q:"MHA hero?",a:["Deku","Bakugo","Todo","Iida"],c:0},
+{q:"Hunter anime?",a:["HXH","Naruto","OP","Bleach"],c:0},
+{q:"Saitama anime?",a:["OPM","Naruto","DBZ","AOT"],c:0},
+{q:"Jujutsu MC?",a:["Gojo","Yuji","Megumi","Sukuna"],c:1},
+{q:"Chainsaw man?",a:["Denji","Aki","Power","Makima"],c:0},
+{q:"Fairy guild?",a:["Blue","Fairy","Red","Black"],c:1},
+{q:"Geass power?",a:["Sharingan","Geass","Magic","Nen"],c:1},
+{q:"Black clover MC?",a:["Asta","Yuno","Noelle","Yami"],c:0},
+{q:"Pokemon MC?",a:["Ash","Red","Blue","Gary"],c:0},
+{q:"Dr Stone genius?",a:["Senku","Taiju","Gen","Chrome"],c:0},
+];
+
+const rare = [
+{q:"Steins Gate device?",a:["Phone","Clock","Portal","Microwave"],c:3},
+{q:"Berserk sword?",a:["Dragon","Excalibur","Blade","Katana"],c:0},
+{q:"Vinland MC?",a:["Thorfinn","Canute","Bjorn","Ask"],c:0},
+{q:"Rezero revive?",a:["Loop","Death","Return by death","Magic"],c:2},
+{q:"No game duo?",a:["Alpha","Blank","Zero","Void"],c:1},
+];
+
+let used = new Set();
+
+function getQ(arr){
+ let x;
+ do{x=arr[Math.floor(Math.random()*arr.length)]}
+ while(used.has(x.q));
+ used.add(x.q);
+ return x;
+}
+
+function buildQ(){
+ used.clear();
+ let q=[];
+ for(let i=0;i<20;i++) q.push(getQ(famous));
+ for(let i=0;i<5;i++) q.push(getQ(rare));
+ return q.sort(()=>Math.random()-0.5);
+}
+
+// ===== UI =====
+function show(id){
+ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+}
 
 // ===== CODE =====
-function genCode(){
-  return Math.random().toString(36).substring(2,6).toUpperCase();
+function gen(){
+ let s="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+ return Array(4).fill().map(()=>s[Math.random()*s.length|0]).join('');
 }
 
-// ===== SCREEN =====
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+// ===== SUBSCRIBE =====
+function sub(code){
+ if(G.channel) sb.removeChannel(G.channel);
 
-// ===== RENDER =====
-function renderPlayers(){
-  const host = document.getElementById('host-players-list');
-  const guest = document.getElementById('guest-players-list');
+ G.channel = sb.channel("room-"+code,{config:{broadcast:{self:true}}});
 
-  if(host) host.innerHTML='';
-  if(guest) guest.innerHTML='';
-
-  G.players.forEach(p=>{
-    const div=document.createElement('div');
-    div.className='player-chip';
-    div.innerHTML = p.avatar + " " + p.name;
-
-    if(host) host.appendChild(div);
-    if(guest) guest.appendChild(div.cloneNode(true));
-  });
-}
-
-// ===== REALTIME =====
-function subscribeChannel(code){
-
-  if(G.channel) sb.removeChannel(G.channel);
-
-  G.channel = sb.channel("room-"+code);
-
-  // JOIN EVENT
-  G.channel.on('broadcast',{event:'join'},({payload})=>{
-
-    if(!G.players.find(p=>p.name===payload.name)){
-      G.players.push(payload);
-      renderPlayers();
-    }
-
-    // HOST sync
-    if(G.isHost){
-      G.channel.send({
-        type:'broadcast',
-        event:'players',
-        payload:G.players
-      });
-    }
-
-  });
-
-  // FULL PLAYER LIST
-  G.channel.on('broadcast',{event:'players'},({payload})=>{
-    G.players = payload;
-    renderPlayers();
-  });
-
-  G.channel.subscribe(async(status)=>{
-    if(status==="SUBSCRIBED"){
-
-      await G.channel.send({
-        type:'broadcast',
-        event:'join',
-        payload:{
-          name:G.myName,
-          avatar: G.isHost ? "👑" : "🙂"
-        }
-      });
-
-    }
-  });
-
+ G.channel
+ .on('broadcast',{event:'join'},({payload})=>{
+  if(!G.players.includes(payload.name)){
+   G.players.push(payload.name);
+   render();
+  }
+ })
+ .on('broadcast',{event:'start'},({payload})=>{
+  G.q=payload;
+  start();
+ })
+ .subscribe(async(s)=>{
+  if(s=="SUBSCRIBED"){
+   await G.channel.send({type:'broadcast',event:'join',payload:G.name});
+  }
+ });
 }
 
 // ===== CREATE =====
 function createGame(){
-  const name = document.getElementById('host-name').value.trim();
-  if(!name) return alert("Enter name");
+ let n=host-name.value;
+ if(!n) return alert("enter name");
 
-  const code = genCode();
+ G.name=n; G.isHost=true;
+ G.room=gen(); G.players=[n];
 
-  G.roomCode = code;
-  G.myName = name;
-  G.isHost = true;
+ roomCode.innerText=G.room;
 
-  G.players = [{name:name, avatar:"👑"}];
-
-  document.getElementById('display-code').innerText = code;
-
-  showScreen('screen-waiting-host');
-  renderPlayers();
-
-  subscribeChannel(code);
+ show('host'); render();
+ sub(G.room);
 }
 
 // ===== JOIN =====
 function joinGame(){
-  const name = document.getElementById('join-name').value.trim();
-  if(!name) return alert("Enter name");
+ let n=join-name.value;
+ let c=code.value.toUpperCase();
+ if(!n||c.length!=4) return alert("wrong");
 
-  const code = [
-    cc0.value,cc1.value,cc2.value,cc3.value
-  ].join('').toUpperCase();
+ G.name=n; G.room=c;
+ G.players=[n];
 
-  if(code.length!==4) return alert("Enter code");
+ show('guest'); render();
+ sub(c);
+}
 
-  G.roomCode = code;
-  G.myName = name;
-  G.isHost = false;
+// ===== RENDER =====
+function render(){
+ players.innerHTML=G.players.map(p=>`<div class="player">${p}</div>`).join('');
+ players2.innerHTML=players.innerHTML;
+}
 
-  G.players = [{name:name, avatar:"🙂"}];
+// ===== START =====
+async function startGame(){
+ if(G.players.length<2) return alert("need 2");
 
-  showScreen('screen-waiting-guest');
-  renderPlayers();
+ let q=buildQ();
+ await G.channel.send({type:'broadcast',event:'start',payload:q});
+ start();
+}
 
-  subscribeChannel(code);
+// ===== QUIZ =====
+function start(){
+ G.i=0;
+ show('quiz');
+ load();
+}
+
+function load(){
+ let x=G.q[G.i];
+ q.innerText = x.q;
+
+ opts.innerHTML = x.a.map((o,i)=>
+  `<button onclick="ans(${i})">${o}</button>`
+ ).join('');
+}
+
+function ans(i){
+ let x=G.q[G.i];
+ alert(i==x.c?"Correct":"Wrong");
+
+ G.i++;
+ if(G.i<25) load();
+ else alert("Game Over 🎉");
 }
 </script>
 
